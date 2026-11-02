@@ -95,7 +95,7 @@
 
   /* 淘旧换新：手里有很重的牌时换掉最重的，返回要弃的 uid 或 null */
   AI.wantRefresh = function (g, p) {
-    if (!skillOf(g, p, 'refresh')) return null;
+    if (g.penalty || !skillOf(g, p, 'refresh')) return null;
     var worst = null, wb = 6;
     p.hand.forEach(function (c) {
       var b = burden(c);
@@ -122,6 +122,11 @@
     if (canArm(g, p, 'brake')) {
       var weak = minOpp();
       if (weak && weak.hand.length <= 2 && Math.random() < 0.9) E.armSkill(g, p.id, 'brake');
+    }
+    /* 被罚牌叠到头上：接不住才挂护身符反杀，或罚得狠时用荆棘扎回去 */
+    if (g.penalty && g.turn === p.id && !p.hand.some(function (x) { return E.playable(g, x); })) {
+      if (canArm(g, p, 'shield')) E.armSkill(g, p.id, 'shield');
+      else if (canArm(g, p, 'thorn') && g.penalty.n >= 4 && Math.random() < 0.8) E.armSkill(g, p.id, 'thorn');
     }
     /* 偷天换日：手牌明显比最少的对手多时，送走最重的牌 */
     if (skillOf(g, p, 'swap')) {

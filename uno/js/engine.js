@@ -160,6 +160,7 @@
       sleepy: [],         // 被瞌睡虫催眠的座位（跳过下个回合）
       bomb: null,         // 臭屁炸弹 { seat, count }（count 剩余回合数）
       grapeSeat: null,    // 暴走柚子生效中的座位（本回合 +2 翻倍）
+      penalty: null,      // 罚牌叠加 { n: 累计张数, kind: 'd2'|'w4', by: 最后出罚牌者 }
       portalTarget: null, // 传送门 { by, target }
       oracleShow: null,   // 占卜师 { by, cards }
       log: []
@@ -263,7 +264,7 @@
     if (xj) victim.skill.uses--;
     for (var i = 0; i < cnt; i++) { if (drawOne(g, victim)) got++; }
     if (xj) glog(g, victim.name + ' 发动【细嚼慢咽】，罚 ' + n + ' 张只摸了 ' + got + ' 张并被跳过');
-    else if (got) glog(g, victim.name + ' 被 ' + E.KIND_NAME[n === 2 ? 'd2' : 'w4'] + ' 罚摸 ' + got + ' 张并被跳过');
+    else if (got) glog(g, victim.name + ' 认罚，一口气摸了 ' + got + ' 张并被跳过');
     else glog(g, victim.name + ' 无牌可摸，被跳过');
     /* 荆棘：待命中则攻击者也罚摸一半 */
     var th = g.skillMode && victim.skill;
@@ -279,6 +280,11 @@
 
   E.playable = function (g, c) {
     if (g.over) return false;
+    /* 罚牌叠加中：只有匹配的罚牌能出（+2 态可接 +2/+4；+4 态只能 +4） */
+    if (g.penalty) {
+      if (g.penalty.kind === 'w4') return c.k === 'w4';
+      return c.k === 'd2' || c.k === 'w4';
+    }
     if (c.c === 'w') return true;
     return c.c === g.color || c.k === g.top.k;
   };
@@ -396,16 +402,9 @@
       if (canFollow) comboHold = true;
     }
 
-    if (comboHold) {
-      /* 不轮转：罚牌照常结算给下家，然后回合回到自己手上 */
-      if (c.k === 'd2') {
-        step(g, 1);
-        if (g.grapeSeat === p.id) { g.grapeSeat = null; glog(g, p.name + ' 的【暴走柚子】发力，+2 翻倍成 +4！'); applyDrawPenalty(g, 4, p.id); }
-        else applyDrawPenalty(g, 2, p.id);
-        step(g, -1);
-      }
-      else if (c.k === 'w4') { step(g, 1); applyDrawPenalty(g, 4, p.id); step(g, -1); }
-      else if (c.k === 'rev') { g.dir *= -1; glog(g, '方向反转'); }
+    if (comboHold && c.k !== 'd2' && c.k !== 'w4') {
+      /* 不轮转：回合回到自己手上（罚牌走叠加逻辑，不与连击混用） */
+      if (c.k === 'rev') { g.dir *= -1; glog(g, '方向反转'); }
       g.comboSeat = p.id;
       glog(g, p.name + ' 触发【连击】，可追加一张');
       return { ok: true, combo: true };
@@ -423,18 +422,22 @@
         if (N === 2) { step(g, 1); glog(g, '双人局反转等同跳过，' + g.players[g.turn].name + ' 被跳过'); step(g, 1); }
         else { step(g, 1); glog(g, '方向反转，轮到 ' + g.players[g.turn].name); }
         break;
-      case 'd2':
+      case 'd2': {
+        var add2 = 2;
+        if (g.grapeSeat === p.id) { g.grapeSeat = null; add2 = 4; glog(g, p.name + ' 的【暴走柚子】发力，+2 翻倍成 +4！'); }
         step(g, 1);
-        if (g.grapeSeat === p.id) {
-          g.grapeSeat = null;
-          glog(g, p.name + ' 的【暴走柚子】发力，+2 翻倍成 +4！');
-          applyDrawPenalty(g, 4, p.id);
-        } else applyDrawPenalty(g, 2, p.id);
+        if (g.penalty) { g.penalty.n += add2; g.penalty.by = p.id; }
+        else g.penalty = { n: add2, kind: 'd2', by: p.id };
+        glog(g, '⏫ 罚牌叠到 ' + g.penalty.n + ' 张！' + g.players[g.turn].name + ' 得接上或认罚');
+        break;
+      }
+      case 'w4': {
         step(g, 1);
+        if (g.penalty) { g.penalty.n += 4; g.penalty.kind = 'w4'; g.penalty.by = p.id; }
+        else g.penalty = { n: 4, kind: 'w4', by: p.id };
+        glog(g, '⏫ 罚牌叠到 ' + g.penalty.n + ' 张！' + g.players[g.turn].name + ' 得接上或认罚');
         break;
-      case 'w4':
-        step(g, 1); applyDrawPenalty(g, 4, p.id); step(g, 1);
-        break;
+      }
       default:
         step(g, 1);
     }
@@ -459,6 +462,16 @@
     var p = g.players[g.turn];
     if (g.awaiting) return { ok: false, err: '请先处理摸到的牌' };
     settleTurnStart(g);
+    /* 罚牌叠加：认罚——一次吃下累计张数并被跳过 */
+    if (g.penalty) {
+      var pn = g.penalty.n, pby = g.penalty.by;
+      g.penalty = null;
+      applyDrawPenalty(g, pn, pby);
+      clearPortalWaste(g);
+      step(g, 1);
+      endTurn(g);
+      return { ok: true, penalty: true };
+    }
     var sk = g.skillMode && p.skill;
     var wf = !!(useWindfall && sk && sk.id === 'windfall' && sk.uses > 0 &&
       g.deck.length + Math.max(0, g.discard.length - 1) >= 2);
@@ -571,6 +584,8 @@
     if (g.over) return { err: '对局已结束' };
     if (g.turn !== seat) return { err: '只能在自己回合使用' };
     if (g.awaiting) return { err: '请先处理摸到的牌' };
+    /* 罚牌叠加中：被罚者只能出罚牌/认罚，或临时挂待命型技能（护身符反杀！） */
+    if (g.penalty && ARM_SKILLS.indexOf(skillId) < 0) return { err: '先处理罚牌（叠加或认罚）' };
     var p = g.players[seat];
     var sk = g.skillMode && p.skill;
     if (!sk || sk.id !== skillId || sk.uses <= 0) return { err: '技能不可用' };

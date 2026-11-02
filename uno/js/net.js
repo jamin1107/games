@@ -733,6 +733,7 @@
       g.awaiting ? g.awaiting.type : '', g.unoPending,
       g.players.map(function (p) { return p.hand.length + '@' + (p.skill ? p.skill.id + p.skill.uses + (p.skill.armed ? 'A' : '') : '-'); }).join(','),
       g.comboSeat == null ? '' : g.comboSeat,
+      g.penalty ? g.penalty.kind + g.penalty.n + '.' + g.penalty.by : '',
       g.peek ? g.peek.target : '',
       g.windfallUids ? g.windfallUids.join('.') : '',
       g.luckyNum || '',

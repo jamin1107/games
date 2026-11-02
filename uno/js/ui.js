@@ -255,6 +255,10 @@
     } else if (isMyTurn && g.comboSeat === me) {
       hint = '⚡ 连击！可以立刻追加出一张';
       ab += '<button class="btn" data-act="combopass">跳过连击</button>';
+    } else if (isMyTurn && g.penalty) {
+      hint = '⚠️ ' + g.players[g.penalty.by].name + ' 把罚牌叠到 ' + g.penalty.n + ' 张：出匹配罚牌（' +
+        (g.penalty.kind === 'w4' ? '仅能 +4' : '+2 或 +4') + '）续上，或认罚';
+      ab += '<button class="btn primary" data-act="draw">认罚：摸 ' + g.penalty.n + ' 张</button>';
     } else if (isMyTurn) {
       hint = '轮到你了：点一张能跟上的牌，或摸一张';
       if (g.portalTarget && g.portalTarget.by === me) {
@@ -263,7 +267,8 @@
       ab += '<button class="btn primary" data-act="draw">摸一张牌</button>';
     } else {
       var cur = g.players[g.turn];
-      hint = '等待 ' + cur.name + (cur.isHuman ? '' : ' 思考中…');
+      if (g.penalty) hint = '⚠️ 罚牌叠加中：' + cur.name + ' 决定接不接（共 ' + g.penalty.n + ' 张）';
+      else hint = '等待 ' + cur.name + (cur.isHuman ? '' : ' 思考中…');
     }
     $('hint-line').textContent = hint;
     $('actionbar').innerHTML = ab;
@@ -883,7 +888,7 @@
       '<div class="sheet-body rules">' +
       '<p><b>目标</b>：最先出完手牌的人获胜。</p>' +
       '<p><b>出牌</b>：跟上牌堆顶的牌 —— <b>颜色相同</b>或<b>数字/功能相同</b>均可；万能牌随时可出。</p>' +
-      '<p><b>功能牌</b>：⊘ 跳过下家；⇄ 反转方向（双人局等同跳过）；+2 / +4 让下家罚摸并跳过。</p>' +
+      '<p><b>功能牌</b>：⊘ 跳过下家；⇄ 反转方向（双人局等同跳过）；+2 / +4 让下家罚摸——但下家可以接着出 +2 / +4 叠加（+4 头上只能接 +4），累计张数由最后接不住的人一口气吃完并被跳过。</p>' +
       '<p><b>万能牌</b>：★ 换色自由出；+4 出完后由你指定颜色，下家摸 4 张。</p>' +
       '<p><b>摸牌</b>：无牌可出就摸一张；摸到的牌如果能出，可以立刻打出或保留。</p>' +
       '<p><b>喊 UNO</b>：打到只剩 1 张时，所有人界面都会出现一个 UNO 按钮——本人先按=安全；4 秒内没按被对手抢先按住，罚摸 2 张。按钮不带倒计时，全凭反应，先按先得。AI 也会喊、也会抓。</p>' +
