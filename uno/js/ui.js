@@ -31,6 +31,8 @@
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
   }
+  /* 联机视图下对手手牌被隐藏，张数走 handCount */
+  function handN(p) { return p.handCount != null ? p.handCount : p.hand.length; }
 
   /* ---------------- 基础组件 ---------------- */
 
@@ -101,12 +103,12 @@
     var my = g.players[me];
     var isMyTurn = g.turn === me && !g.over;
 
-    /* 对手区 */
+    /* 对手区（联机视图下对手手牌被隐藏，张数走 handCount） */
     var ops = '';
     g.players.forEach(function (p) {
       if (p.id === me) return;
       var isTurn = g.turn === p.id && !g.over;
-      var uno = p.hand.length === 1 ? '<span class="uno-badge">UNO!</span>' : '';
+      var uno = handN(p) === 1 ? '<span class="uno-badge">UNO!</span>' : '';
       var think = (isTurn && thinkingId === p.id) ? '<span class="think-dot"></span>' : '';
       var skChip = (g.skillMode && p.skill)
         ? '<span class="opp-skill">' + E.SKILLS[p.skill.id].icon + (p.skill.uses > 0 ? '×' + p.skill.uses : '') + '</span>'
@@ -119,9 +121,9 @@
       if (g.portalTarget && g.portalTarget.target === p.id) marks += '<span class="opp-skill">🌀</span>';
       if (p.skill && p.skill.armed) marks += '<span class="opp-skill">⚡</span>';
       var backs = '';
-      var shown = Math.min(p.hand.length, 6);
+      var shown = Math.min(handN(p), 6);
       for (var i = 0; i < shown; i++) backs += '<i class="mini-back" style="transform:rotate(' + ((i - shown / 2) * 4) + 'deg)"></i>';
-      if (p.hand.length > 6) backs += '<i class="mini-more">+' + (p.hand.length - 6) + '</i>';
+      if (handN(p) > 6) backs += '<i class="mini-more">+' + (handN(p) - 6) + '</i>';
       ops += '<div class="opp' + (isTurn ? ' turn' : '') + '">' +
         '<div class="opp-top">' +
           '<div class="opp-avwrap">' +
@@ -129,7 +131,7 @@
             uno +
           '</div>' +
           '<div class="opp-id"><div class="opp-name">' + esc(p.name) + skChip + marks + think + '</div>' +
-          '<div class="opp-count">' + p.hand.length + ' 张</div></div>' +
+          '<div class="opp-count">' + handN(p) + ' 张</div></div>' +
         '</div>' +
         '<div class="opp-cards">' + backs + '</div>' +
         '</div>';
@@ -731,7 +733,7 @@
       if (p.id === me) return;
       if (excludeSeat != null && p.id === excludeSeat) return;
       items += '<button class="tgt-btn" data-seat="' + p.id + '">' +
-        '<b>' + esc(p.name) + '</b><span>' + p.hand.length + ' 张手牌</span></button>';
+        '<b>' + esc(p.name) + '</b><span>' + handN(p) + ' 张手牌</span></button>';
     });
     openSheet(
       '<div class="sheet-head"><h2>' + title + '</h2><p>' + sub + '</p></div>' +

@@ -767,7 +767,10 @@
     /* 天眼生效中：把被偷看对象的手牌一并发给使用者 */
     var peeking = g.peek && g.peek.by === seat ? g.peek.target : -1;
     v.players.forEach(function (p) {
-      if (p.id !== seat && p.id !== peeking) p.hand = [];
+      if (p.id !== seat && p.id !== peeking) {
+        p.handCount = p.hand.length; /* 藏牌面但保留张数给 UI 显示 */
+        p.hand = [];
+      }
     });
     /* 赌西瓜押注颜色：只给押注者与目标看 */
     if (v.hex && seat !== v.hex.by && seat !== v.hex.target) v.hex.color = '';
