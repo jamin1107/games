@@ -3,120 +3,238 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0d1017">
-<title>桌游集合</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%230d1017'/%3E%3Crect%20x='6'%20y='8'%20width='12'%20height='16'%20rx='2'%20fill='%23e0533f'/%3E%3Crect%20x='14'%20y='8'%20width='12'%20height='16'%20rx='2'%20fill='%233f7fe0'%20opacity='.85'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#f7f0e0">
+<title>卡皮巴拉桌游温泉</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%23f7f0e0'/%3E%3Cellipse%20cx='16'%20cy='20'%20rx='10'%20ry='6'%20fill='%2348cfd8'/%3E%3Ccircle%20cx='16'%20cy='13'%20r='6'%20fill='%23c89b6c'/%3E%3Ccircle%20cx='24'%20cy='21'%20r='2.4'%20fill='%23f5a13c'/%3E%3C/svg%3E">
 <style>
 :root {
-  --bg: #0d1017;
-  --panel: rgba(255, 255, 255, .05);
-  --line: rgba(255, 255, 255, .09);
-  --text: #eef1f6;
-  --muted: rgba(190, 200, 216, .62);
-  --gold: #f2b53a;
+  --cream: #f7f0e0;
+  --paper: #fffaf0;
+  --navy: #1c2740;
+  --ink: #17202e;
+  --brown: #c89b6c;
+  --coral: #e0533f;
+  --aqua: #48cfd8;
+  --yuzu: #f5a13c;
+  --gold: #d8b166;
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; min-height: 100%; }
 body {
   background:
-    radial-gradient(120% 60% at 50% 0%, rgba(224, 83, 63, .12), transparent 55%),
-    radial-gradient(90% 50% at 80% 100%, rgba(63, 127, 224, .12), transparent 60%),
-    var(--bg);
-  color: var(--text);
+    radial-gradient(90% 40% at 12% 8%, rgba(72, 207, 216, .16), transparent 60%),
+    radial-gradient(80% 36% at 90% 94%, rgba(224, 83, 63, .12), transparent 60%),
+    var(--cream);
+  color: var(--navy);
   font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
   user-select: none;
   -webkit-user-select: none;
+  overflow-x: hidden;
 }
-.wrap { max-width: 520px; margin: 0 auto; padding: 48px 20px 60px; }
+.wrap { max-width: 520px; margin: 0 auto; padding: 34px 20px 56px; position: relative; z-index: 1; }
+
+/* ---------- 漂浮柚子 ---------- */
+.yuzu {
+  position: fixed;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, var(--cream) 0 28%, transparent 30%),
+    radial-gradient(circle at 50% 50%, transparent 0 44%, var(--yuzu) 46% 100%);
+  border: 3px solid var(--ink);
+  opacity: .85;
+  animation: bob 5.5s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+.yuzu::before, .yuzu::after {
+  content: '';
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 74%; height: 3px;
+  background: var(--yuzu);
+  transform: translate(-50%, -50%);
+}
+.yuzu::after { transform: translate(-50%, -50%) rotate(90deg); }
+.yz1 { width: 26px; height: 26px; top: 12%; left: 6%; }
+.yz2 { width: 18px; height: 18px; top: 30%; right: 7%; animation-delay: -2s; }
+.yz3 { width: 14px; height: 14px; bottom: 16%; left: 9%; animation-delay: -3.6s; }
+@keyframes bob {
+  0%, 100% { transform: translateY(0) rotate(-8deg); }
+  50% { transform: translateY(-9px) rotate(10deg); }
+}
+
+/* ---------- 头部 ---------- */
+header { text-align: center; }
+.mascot {
+  position: relative;
+  width: 118px;
+  margin: 0 auto;
+  animation: bob2 4.5s ease-in-out infinite;
+}
+.mascot img {
+  display: block;
+  width: 118px; height: 118px;
+  border-radius: 30px;
+  border: 4px solid var(--ink);
+  box-shadow: 0 8px 0 rgba(23, 32, 46, .9);
+}
+.steam {
+  position: absolute;
+  top: -26px; left: 0; right: 0;
+  font-size: 17px;
+  letter-spacing: 10px;
+  opacity: .8;
+  animation: steam 2.6s ease-in-out infinite;
+}
+@keyframes bob2 {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+@keyframes steam {
+  0%, 100% { transform: translateY(0); opacity: .55; }
+  50% { transform: translateY(-4px); opacity: .95; }
+}
 header h1 {
-  margin: 0;
-  font-size: 34px;
-  letter-spacing: .06em;
+  margin: 20px 0 0;
+  font-size: 30px;
+  letter-spacing: .12em;
+  color: var(--ink);
+  text-shadow: 2px 2px 0 var(--yuzu);
 }
-header .sub { margin: 8px 0 0; font-size: 12px; letter-spacing: .3em; color: var(--muted); }
+header .sub {
+  display: inline-block;
+  margin: 12px 0 0;
+  font-size: 11px;
+  letter-spacing: .32em;
+  color: var(--paper);
+  background: var(--navy);
+  border: 3px solid var(--ink);
+  border-radius: 99px;
+  padding: 5px 16px 5px 20px;
+  box-shadow: 0 4px 0 rgba(23, 32, 46, .9);
+}
 header .divider {
-  margin: 20px 0 26px;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(242, 181, 58, .5), transparent);
+  margin: 24px auto 28px;
+  width: 200px; height: 8px;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--aqua), var(--yuzu), var(--coral));
+  border: 3px solid var(--ink);
 }
-.grid { display: flex; flex-direction: column; gap: 14px; }
+
+/* ---------- 游戏卡片 ---------- */
+.grid { display: flex; flex-direction: column; gap: 22px; }
 .game-card {
   display: block;
   text-decoration: none;
   color: inherit;
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  background: var(--panel);
+  border: 4px solid var(--ink);
+  border-radius: 24px;
+  background: var(--paper);
   overflow: hidden;
-  transition: transform .15s, border-color .15s;
+  box-shadow: 0 8px 0 rgba(23, 32, 46, .9);
+  transition: transform .15s, box-shadow .15s;
 }
-.game-card:active { transform: scale(.98); }
+.game-card:active { transform: translateY(4px); box-shadow: 0 4px 0 rgba(23, 32, 46, .9); }
 .gc-art {
-  height: 120px;
+  height: 132px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 40px;
-  font-weight: 900;
-  font-style: italic;
-  letter-spacing: -1px;
+  gap: 0;
+  position: relative;
+  border-bottom: 4px solid var(--ink);
+  overflow: hidden;
 }
-.gc-art.uno {
-  background:
-    radial-gradient(80% 120% at 20% 10%, rgba(224, 83, 63, .5), transparent 60%),
-    radial-gradient(80% 120% at 85% 90%, rgba(63, 127, 224, .45), transparent 60%),
-    #171c28;
-  color: #fff;
-  text-shadow: 0 4px 14px rgba(0, 0, 0, .5);
+.gc-art img.cover {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
 }
-.gc-art.citadels {
-  background:
-    radial-gradient(80% 120% at 20% 10%, rgba(216, 177, 102, .35), transparent 60%),
-    radial-gradient(80% 120% at 85% 90%, rgba(90, 70, 140, .4), transparent 60%),
-    #171c28;
-  color: var(--gold);
-  font-style: normal;
-  font-size: 30px;
-  letter-spacing: .1em;
-}
-.gc-body { padding: 14px 16px 16px; }
-.gc-name { font-size: 18px; font-weight: 700; letter-spacing: .06em; display: flex; align-items: center; gap: 8px; }
-.gc-tag { margin: 6px 0 0; font-size: 12px; line-height: 1.7; color: var(--muted); }
-.gc-meta { margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
-.gc-chip {
-  font-size: 10px;
-  color: var(--muted);
-  border: 1px solid var(--line);
+.gc-art .badge {
+  position: absolute;
+  top: 10px; left: 10px;
+  background: var(--paper);
+  border: 3px solid var(--ink);
   border-radius: 99px;
-  padding: 2px 9px;
+  padding: 3px 11px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--ink);
+  box-shadow: 0 3px 0 rgba(23, 32, 46, .9);
 }
-footer { margin-top: 30px; text-align: center; font-size: 10px; letter-spacing: .2em; color: rgba(190, 200, 216, .35); }
+.gc-art.citadels { background: radial-gradient(90% 130% at 50% 0%, #f3d9a4, #e8b96b); }
+.gc-art.citadels img.face {
+  width: 86px; height: 86px;
+  border-radius: 50%;
+  border: 4px solid var(--ink);
+  object-fit: cover;
+  box-shadow: 0 5px 0 rgba(23, 32, 46, .9);
+}
+.gc-art.citadels img.face:nth-child(2) { width: 104px; height: 104px; margin: 0 -16px; z-index: 1; }
+.gc-art .castle { position: absolute; right: 12px; bottom: 8px; font-size: 34px; filter: drop-shadow(0 3px 0 rgba(23, 32, 46, .7)); }
+.gc-body { padding: 16px 18px 18px; }
+.gc-name {
+  font-size: 19px; font-weight: 800; letter-spacing: .08em;
+  display: flex; align-items: center; gap: 8px;
+  color: var(--ink);
+}
+.gc-name::before { content: '🥔'; font-size: 16px; }
+.gc-tag { margin: 8px 0 0; font-size: 12.5px; line-height: 1.8; color: #5a6478; }
+.gc-meta { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+.gc-chip {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--ink);
+  background: rgba(72, 207, 216, .22);
+  border: 2.5px solid var(--ink);
+  border-radius: 99px;
+  padding: 3px 11px;
+  box-shadow: 0 2.5px 0 rgba(23, 32, 46, .85);
+}
+
+/* ---------- 页脚 ---------- */
+footer {
+  margin-top: 34px;
+  text-align: center;
+  font-size: 10.5px;
+  letter-spacing: .22em;
+  color: #8a7f68;
+}
+footer .onsen { font-size: 20px; letter-spacing: 14px; margin-bottom: 6px; }
 </style>
 </head>
 <body>
+<i class="yuzu yz1"></i><i class="yuzu yz2"></i><i class="yuzu yz3"></i>
 <div class="wrap">
   <header>
-    <h1>桌游集合</h1>
-    <p class="sub">GAME HUB</p>
+    <div class="mascot">
+      <span class="steam">♨️♨️</span>
+      <img src="uno/assets/card-back.jpg" alt="泡温泉的卡皮巴拉">
+    </div>
+    <h1>卡皮巴拉桌游温泉</h1>
+    <p class="sub">CAPYBARA GAME HUB</p>
     <div class="divider"></div>
   </header>
 
   <div class="grid" id="game-grid"></div>
 
-  <footer>纯本地 · 无需联网 · 局域网联机</footer>
+  <footer>
+    <div class="onsen">♨️ 🍊 ♨️</div>
+    纯本地 · 无需联网 · 局域网联机
+  </footer>
 </div>
 
 <script>
-/* 新增桌游：往这个数组里加一项即可 */
+/* 新增桌游：往这个数组里加一项即可（img 为卡面插画，可空） */
 var GAMES = [
   {
     id: 'uno',
-    name: 'UNO',
-    tagline: '经典 UNO。跟颜色、跟数字、放功能牌，最先出完手牌的人赢，喊 UNO 的快乐一个不少。',
-    chips: ['2–4 人', '局域网联机', '支持 AI 补位'],
+    name: 'UNO · 卡皮巴拉温泉版',
+    tagline: '跟颜色、跟数字、放功能牌，最先出完手牌的人赢。20 种技能池，喊 UNO 的快乐一个不少。',
+    chips: ['2–4 人', '局域网联机', '20 种技能'],
     url: 'uno/',
-    art: 'uno',
-    artText: 'UNO'
+    img: 'uno/assets/card-back.jpg',
+    badge: '♨️ 温泉限定'
   },
   {
     id: 'citadels',
@@ -124,14 +242,24 @@ var GAMES = [
     tagline: '八位角色，五色城区。猜透对手，建成最富饶的王城。',
     chips: ['2–4 人', '局域网联机', '角色扮演'],
     url: '../citadels/',
-    art: 'citadels',
-    artText: '富饶之城'
+    faces: ['uno/assets/avatar-r.jpg', 'uno/assets/avatar-g.jpg', 'uno/assets/avatar-b.jpg'],
+    castle: true,
+    badge: '🏰 经典桌游'
   }
 ];
 
 document.getElementById('game-grid').innerHTML = GAMES.map(function (gm) {
+  var art;
+  if (gm.img) {
+    art = '<img class="cover" src="' + gm.img + '" alt="">' +
+      '<span class="badge">' + gm.badge + '</span>';
+  } else {
+    art = (gm.faces || []).map(function (f) { return '<img class="face" src="' + f + '" alt="">'; }).join('') +
+      (gm.castle ? '<span class="castle">🏰</span>' : '') +
+      '<span class="badge">' + gm.badge + '</span>';
+  }
   return '<a class="game-card" href="' + gm.url + '">' +
-    '<div class="gc-art ' + gm.art + '">' + gm.artText + '</div>' +
+    '<div class="gc-art ' + (gm.img ? 'uno' : 'citadels') + '">' + art + '</div>' +
     '<div class="gc-body">' +
     '<div class="gc-name">' + gm.name + '</div>' +
     '<p class="gc-tag">' + gm.tagline + '</p>' +
