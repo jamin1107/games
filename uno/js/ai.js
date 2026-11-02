@@ -148,9 +148,9 @@
       var flip = g.players[((g.turn - g.dir) % N + N) % N];
       if (flip.hand.length < nat.hand.length && Math.random() < 0.8) E.useReversal(g, p.id);
     }
-    /* 无中生有：手牌不少于 3 张就白摸 */
+    /* 摸鱼：手牌不少于 3 张就白摸 */
     if (skillOf(g, p, 'draw3') && p.hand.length >= 3) E.useDraw2(g, p.id);
-    /* 顺手牵羊 / 过河拆桥：针对手牌最少的对手 */
+    /* 叼走小鱼 / 拆水坝：针对手牌最少的对手 */
     if (skillOf(g, p, 'steal')) {
       var t3 = minOpp();
       if (t3 && t3.hand.length && t3.hand.length <= 2) E.useSteal(g, p.id, t3.id);
@@ -170,7 +170,7 @@
       if (t5 && t5.hand.length && p.hand.length > t5.hand.length &&
           p.hand.length - t5.hand.length <= 2) E.useMSwap(g, p.id, t5.id);
     }
-    /* 蛊惑：对下家押他手里最多的颜色 */
+    /* 赌西瓜：对下家押他手里最多的颜色 */
     if (skillOf(g, p, 'hex') && !g.hex) {
       var t6 = nextOf();
       if (t6.hand.length) {

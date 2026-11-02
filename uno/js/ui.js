@@ -20,7 +20,7 @@
   var eyeShownFor = -1;       // 天眼弹层当前展示的目标
   var twinArm = false;        // 双子星：等待点选主数字牌
   var refreshPick = false;    // 淘旧换新：等待点选要弃掉的牌
-  var pendingHexTarget = -1;  // 蛊惑：等待押颜色的目标
+  var pendingHexTarget = -1;  // 赌西瓜：等待押颜色的目标
   var oracleShown = false;    // 占卜师弹层已展示
   var AVATAR_COLORS = ['#e0533f', '#3f7fe0', '#43a86b', '#b07d14'];
   var AVATAR_IMGS = ['assets/avatar-r.jpg', 'assets/avatar-b.jpg', 'assets/avatar-g.jpg', 'assets/avatar-y.jpg'];
@@ -597,7 +597,7 @@
 
   /* ---------------- 弹层 ---------------- */
 
-  /* 颜色选择弹层：mode = 'wild' 万能牌 | 'lucky' 幸运数字 | 'hex' 蛊惑押色 */
+  /* 颜色选择弹层：mode = 'wild' 万能牌 | 'lucky' 幸运数字 | 'hex' 赌西瓜押色 */
   function openColorSheet(uid, mode) {
     pendingWild = uid;
     var head;

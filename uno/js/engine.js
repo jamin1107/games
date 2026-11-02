@@ -155,7 +155,7 @@
       comboSeat: null,    // 有连击机会的座位（可追加出一张）
       windfallUids: null, // 顺风手摸到的 2 张牌 uid
       peek: null,         // 天眼 { by, target }
-      hex: null,          // 蛊惑 { by, target, color }
+      hex: null,          // 赌西瓜 { by, target, color }
       delayed: [],        // 被拖延的座位列表
       sleepy: [],         // 被瞌睡虫催眠的座位（跳过下个回合）
       bomb: null,         // 臭屁炸弹 { seat, count }（count 剩余回合数）
@@ -655,7 +655,7 @@
     return { ok: true };
   };
 
-  /* 无中生有：不消耗回合摸 2 张 */
+  /* 摸鱼：不消耗回合摸 2 张 */
   E.useDraw2 = function (g, seat) {
     var ck = activeCheck(g, seat, 'draw3');
     if (ck.err) return { ok: false, err: ck.err };

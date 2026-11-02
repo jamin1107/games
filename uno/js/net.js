@@ -754,7 +754,7 @@
     v.players.forEach(function (p) {
       if (p.id !== seat && p.id !== peeking) p.hand = [];
     });
-    /* 蛊惑押注颜色：只给蛊惑者与目标看 */
+    /* 赌西瓜押注颜色：只给押注者与目标看 */
     if (v.hex && seat !== v.hex.by && seat !== v.hex.target) v.hex.color = '';
     /* 占卜师看到的牌：只给使用者看 */
     if (v.oracleShow && v.oracleShow.by !== seat) v.oracleShow = null;
