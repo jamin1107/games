@@ -66,10 +66,15 @@
     var cls = 'ucard c-' + c.c + (extraCls ? ' ' + extraCls : '');
     if (c.c === 'w') cls += ' c-w';
     var v = esc(valText(c));
+    var oval;
+    if (c.c === 'w') {
+      oval = '<b class="uc-val">' + v + '</b>';
+    } else {
+      oval = '<img class="uc-art" src="assets/face-' + c.c + '.jpg" alt="">';
+    }
     return '<div class="' + cls + '" data-uid="' + c.uid + '">' +
       '<i class="uc-corner tl">' + v + '</i>' +
-      '<i class="uc-oval"></i>' +
-      '<b class="uc-val">' + v + '</b>' +
+      '<span class="uc-oval">' + oval + '</span>' +
       '<i class="uc-corner br">' + v + '</i>' +
       '</div>';
   }
