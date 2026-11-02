@@ -105,23 +105,38 @@ button { font-family: inherit; }
 .mini-back {
   width: 13px; height: 18px;
   border-radius: 3px;
-  background: linear-gradient(160deg, #2c3548, #1a2030);
-  border: 1px solid rgba(255, 255, 255, .18);
+  background: url('assets/card-back.jpg') center / cover;
+  border: 1px solid rgba(255, 255, 255, .25);
+  display: inline-block;
 }
 .mini-more { font-size: 9px; color: var(--muted); margin-left: 2px; }
 .opp-top { display: flex; align-items: center; gap: 7px; }
+.opp-avwrap { position: relative; flex: 0 0 auto; }
+.opp-avwrap .uno-badge {
+  position: absolute;
+  top: -7px; right: -14px;
+  z-index: 2;
+  margin: 0;
+  padding: 1px 5px;
+  font-size: 8px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .4);
+}
 .opp-avatar {
   width: 26px; height: 26px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
-  font-weight: 800;
-  color: #fff;
+  overflow: hidden;
   border: 2px solid rgba(255, 255, 255, .4);
   flex: 0 0 auto;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, .4);
+}
+.opp-avatar img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
 }
 .opp-id { min-width: 0; flex: 1 1 auto; }
 .opp-name { font-size: 12px; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
@@ -200,21 +215,30 @@ button { font-family: inherit; }
   border: 1px solid rgba(255, 255, 255, .2);
 }
 .dp-stack i:nth-child(2) { transform: translate(3px, -3px) rotate(2deg); opacity: .8; }
-.dp-stack i:nth-child(3) { transform: translate(6px, -6px) rotate(4deg); opacity: .6; }
+.dp-back {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, .25);
+  object-fit: cover;
+}
 .draw-pile::after {
   content: '';
   position: absolute;
-  inset: 8px;
-  border-radius: 8px;
-  background: radial-gradient(closest-side, rgba(224, 83, 63, .55), rgba(224, 83, 63, .12));
+  inset: 0;
+  border-radius: 10px;
+  background: radial-gradient(closest-side at 50% 42%, rgba(10, 14, 24, .0), rgba(10, 14, 24, .28));
 }
 .dp-count {
   position: relative;
+  z-index: 2;
   font-size: 26px;
   font-weight: 800;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, .5);
+  color: #fff;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, .7);
 }
-.dp-label { position: relative; font-size: 9px; letter-spacing: .2em; color: var(--muted); }
+.dp-label { position: relative; z-index: 2; font-size: 9px; letter-spacing: .2em; color: #e8d9b8; text-shadow: 0 1px 4px rgba(0,0,0,.8); }
 .draw-pile:active { transform: scale(.96); }
 
 .mid-info { display: flex; flex-direction: column; align-items: center; gap: 10px; }
@@ -448,6 +472,14 @@ button { font-family: inherit; }
 .dc-r { background: linear-gradient(155deg, #ef6a55, #c93a28); transform: rotate(-12deg) translateY(4px); }
 .dc-g { background: linear-gradient(155deg, #5bbd82, #2f8554); transform: translateY(-2px); }
 .dc-b { background: linear-gradient(155deg, #5c94ec, #2f63b8); transform: rotate(12deg) translateY(4px); }
+.deco-back {
+  width: 48px; height: 68px;
+  border-radius: 8px;
+  border: 2px solid rgba(255, 255, 255, .55);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .45);
+  transform: translateY(-2px);
+  object-fit: cover;
+}
 .mode-note { margin: 2px 0 8px; font-size: 11px; color: var(--muted); min-height: 16px; }
 .start-foot { font-size: 10px; letter-spacing: .2em; color: rgba(190, 200, 216, .4); }
 
@@ -532,27 +564,25 @@ button { font-family: inherit; }
 .res-name { flex: 1 1 auto; font-weight: 700; }
 .res-left { font-size: 11px; color: var(--muted); }
 
-/* ---------- UNO 喊话按钮 ---------- */
+/* ---------- UNO 喊话按钮（手牌行内小胶囊） ---------- */
 .uno-btn {
-  position: fixed;
-  right: max(18px, calc(50vw - 242px));
-  bottom: calc(158px + var(--safe-b));
-  width: 86px; height: 86px;
-  border-radius: 50%;
-  border: 3px solid rgba(255, 255, 255, .92);
-  background: radial-gradient(circle at 32% 28%, #ff7a63, #d13a26 72%);
+  margin-left: auto;
+  flex: 0 0 auto;
+  padding: 4px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, .35);
+  background: linear-gradient(150deg, #ef6a55, #c93a28);
   color: #fff;
-  font-size: 19px;
+  font-size: 12px;
   font-weight: 900;
   font-style: italic;
   letter-spacing: .02em;
-  box-shadow: 0 8px 26px rgba(209, 58, 38, .55);
-  z-index: 30;
+  box-shadow: 0 3px 10px rgba(209, 58, 38, .4);
   animation: unoPulse 1s infinite;
   cursor: pointer;
 }
 @keyframes unoPulse {
-  50% { transform: scale(1.08); box-shadow: 0 8px 32px rgba(209, 58, 38, .8); }
+  50% { transform: scale(1.06); box-shadow: 0 3px 14px rgba(209, 58, 38, .6); }
 }
 .uno-btn:disabled { opacity: .45; animation: none; }
 

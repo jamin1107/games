@@ -222,13 +222,13 @@
     return { ok: true };
   };
 
-  /* 超时没喊：罚摸 2 张。返回是否有惩罚发生 */
+  /* 超时没喊：罚摸 1 张。返回是否有惩罚发生 */
   E.unoExpired = function (g) {
     if (g.over || g.unoPending == null || g.unoPending < 0) return false;
     if (Date.now() <= g.unoDeadline) return false;
     var p = g.players[g.unoPending];
     var got = 0;
-    for (var i = 0; i < 2; i++) { if (drawOne(g, p)) got++; }
+    for (var i = 0; i < 1; i++) { if (drawOne(g, p)) got++; }
     g.unoPending = -1;
     glog(g, p.name + ' 忘了喊 UNO，被抓罚摸 ' + got + ' 张');
     return true;

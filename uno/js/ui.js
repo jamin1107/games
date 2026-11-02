@@ -16,6 +16,7 @@
   var unoTimer = null;        // UNO 倒计时/超时惩罚
   var unoShoutTimer = null;   // AI 自动喊话
   var AVATAR_COLORS = ['#e0533f', '#3f7fe0', '#43a86b', '#b07d14'];
+  var AVATAR_IMGS = ['assets/avatar-r.jpg', 'assets/avatar-b.jpg', 'assets/avatar-g.jpg', 'assets/avatar-y.jpg'];
 
   function $(id) { return document.getElementById(id); }
   function esc(s) {
@@ -93,8 +94,11 @@
       if (p.hand.length > 6) backs += '<i class="mini-more">+' + (p.hand.length - 6) + '</i>';
       ops += '<div class="opp' + (isTurn ? ' turn' : '') + '">' +
         '<div class="opp-top">' +
-          '<span class="opp-avatar" style="background:' + AVATAR_COLORS[p.id % AVATAR_COLORS.length] + '">' + esc(p.name.charAt(0)) + '</span>' +
-          '<div class="opp-id"><div class="opp-name">' + esc(p.name) + uno + think + '</div>' +
+          '<div class="opp-avwrap">' +
+            '<span class="opp-avatar" style="border-color:' + AVATAR_COLORS[p.id % AVATAR_COLORS.length] + '"><img src="' + AVATAR_IMGS[p.id % AVATAR_IMGS.length] + '" alt=""></span>' +
+            uno +
+          '</div>' +
+          '<div class="opp-id"><div class="opp-name">' + esc(p.name) + think + '</div>' +
           '<div class="opp-count">' + p.hand.length + ' 张</div></div>' +
         '</div>' +
         '<div class="opp-cards">' + backs + '</div>' +
@@ -331,7 +335,7 @@
       '<p><b>功能牌</b>：⊘ 跳过下家；⇄ 反转方向（双人局等同跳过）；+2 / +4 让下家罚摸并跳过。</p>' +
       '<p><b>万能牌</b>：★ 换色自由出；+4 出完后由你指定颜色，下家摸 4 张。</p>' +
       '<p><b>摸牌</b>：无牌可出就摸一张；摸到的牌如果能出，可以立刻打出或保留。</p>' +
-      '<p><b>喊 UNO</b>：打到只剩 1 张时，4 秒内点右下角红色 UNO！按钮；忘记喊被抓到要罚摸 2 张。AI 也会喊。</p>' +
+      '<p><b>喊 UNO</b>：打到只剩 1 张时，4 秒内点手牌旁的 UNO！按钮；忘记喊被抓到要罚摸 1 张。AI 也会喊。</p>' +
       '</div>' +
       '<div class="sheet-foot"><button class="btn primary" id="sheet-ok">明白了</button></div>'
     );

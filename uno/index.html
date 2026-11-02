@@ -29,7 +29,8 @@
   <section class="table">
     <div class="pile-zone">
       <div class="draw-pile" id="draw-pile" title="点击摸牌">
-        <div class="dp-stack"><i></i><i></i><i></i></div>
+        <div class="dp-stack"><i></i><i></i></div>
+        <img class="dp-back" src="assets/card-back.jpg" alt="">
         <span class="dp-count" id="draw-count">0</span>
         <span class="dp-label">牌堆</span>
       </div>
@@ -46,12 +47,12 @@
     <div class="hand-head">
       <span class="hand-title">手牌</span>
       <span class="hand-meta" id="hand-meta"></span>
+      <button class="uno-btn hidden" id="uno-btn">UNO!</button>
     </div>
     <div class="hand" id="hand"></div>
   </section>
 
   <footer class="actionbar" id="actionbar"></footer>
-  <button class="uno-btn hidden" id="uno-btn">UNO!</button>
   <div class="toast" id="toast"></div>
 </div>
 
@@ -62,7 +63,7 @@
   <div class="start-inner">
     <div class="start-deco">
       <div class="deco-card dc-r">⊘</div>
-      <div class="deco-card dc-g">⇄</div>
+      <img class="deco-back" src="assets/card-back.jpg" alt="">
       <div class="deco-card dc-b">+2</div>
     </div>
     <div class="uno-logo"><b>UNO</b></div>
@@ -86,10 +87,10 @@
   </div>
 </div>
 
-<script src="js/engine.js?v=4"></script>
-<script src="js/ai.js?v=4"></script>
-<script src="js/qrcode.js?v=4"></script>
-<script src="js/net.js?v=4"></script>
-<script src="js/ui.js?v=4"></script>
+<script src="js/engine.js?v=5"></script>
+<script src="js/ai.js?v=5"></script>
+<script src="js/qrcode.js?v=5"></script>
+<script src="js/net.js?v=5"></script>
+<script src="js/ui.js?v=5"></script>
 </body>
 </html>
