@@ -327,7 +327,7 @@
   function startSolo(count, names, humanFlags) {
     var humanIds = [], nm = [];
     for (var i = 0; i < count; i++) {
-      if (!humanFlags || humanFlags[i]) humanIds.push(i);
+      if (humanFlags ? humanFlags[i] : i === 0) humanIds.push(i);
       nm.push(names && names[i] ? names[i] : (i === 0 ? '你' : 'AI·' + i));
     }
     g = E.createGame({ playerCount: count, humanIds: humanIds, names: nm });
