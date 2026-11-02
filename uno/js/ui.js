@@ -858,6 +858,20 @@
 
   UI.netMode = function () { mode = 'net'; };
 
+  /* 房主开局：把 UI 模块内部 g/me 切到这局游戏（render/pump 都读内部状态） */
+  UI.netStart = function (game, seat, netInfo) {
+    g = game;
+    me = seat;
+    mode = 'net';
+    UI.g = game;
+    UI.me = seat;
+    UI.net = netInfo;
+    resetRoundState();
+    var s = $('start'); if (s) s.classList.add('hidden');
+    if (Net.closeRoom) Net.closeRoom();
+    UI.render();
+  };
+
   UI.netWelcome = function (seat) {
     mode = 'net';
     me = seat;
@@ -872,6 +886,9 @@
     UI.g = view;
     if (view.mySeat != null) { me = view.mySeat; UI.me = view.mySeat; }
     thinkingId = -1;
+    /* 收到游戏状态即离开房间页，进入牌桌 */
+    if (Net.closeRoom) Net.closeRoom();
+    var s = $('start'); if (s) s.classList.add('hidden');
     UI.render();
     if (view.over && !wasOver) UI.showResults();
     if (!view.over) resultsShown = false;

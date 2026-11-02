@@ -627,15 +627,12 @@
     var names = ['房主', '玩家2', '玩家3', '玩家4'];
     var g = E.createGame({ playerCount: count, humanIds: humanIds, names: names, skillMode: U.UI.skillMode });
     var UI = U.UI;
-    UI.g = g;
-    UI.me = 0;
-    UI.mode = 'net';
-    if (UI.netMode) UI.netMode();
-    UI.net = { role: 'host', seat: 0, room: sm.room };
+    /* 关键：让 UI 模块把内部 g/me 切到这局游戏（render/pump 都读 UI 模块内部状态） */
+    if (UI.netStart) UI.netStart(g, 0, { role: 'host', seat: 0, room: sm.room });
+    else { UI.g = g; UI.me = 0; UI.net = { role: 'host', seat: 0, room: sm.room }; }
     sm.syncSig = '';
     hideRoom();
     var s = $('start'); if (s) s.classList.add('hidden');
-    UI.render();
     broadcast();
     UI.pump();
   };
@@ -690,6 +687,8 @@
   };
 
   Net.isGuest = function () { return sm.role === 'guest'; };
+  /* 供 UI 在收到游戏状态后关掉房间弹层 */
+  Net.closeRoom = hideRoom;
   Net.isConnected = function () {
     if (sm.role === 'host') return true;
     return sm.role === 'guest' && sm.guestDc && sm.guestDc.readyState === 'open';
