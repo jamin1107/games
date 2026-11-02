@@ -265,12 +265,20 @@
   Net.openLobby = function () {
     sm.role = null;
     sm.err = '';
+    /* 默认带入主菜单选的桌子大小，可在大厅里改 */
+    sm.count = (U.UI && U.UI.getStartCount) ? U.UI.getStartCount() : 4;
+    var cnt = sm.count;
     showRoom(
       '<div class="net-head"><span class="net-kicker">局域网联机</span>' +
       '<button class="net-close" id="net-back">返回</button></div>' +
       '<h2>同一 WiFi，开一桌</h2>' +
       '<p class="net-sub">无需服务器。流程：房主出示邀请二维码 → 客人扫码生成应答码 → 房主点「📷 扫客人的应答码」在本页扫码即自动连接。' +
-      '也可以全程复制/粘贴。2 人即可开局，真人 1–3 位，剩余座位由 AI 补全。</p>' +
+      '也可以全程复制/粘贴。2 人即可开局，空位由 AI 补全。</p>' +
+      '<div class="net-label">桌子大小</div>' +
+      '<div class="seg" id="net-count-seg">' +
+      '<button data-n="2"' + (cnt === 2 ? ' class="on"' : '') + '>2 人桌</button>' +
+      '<button data-n="3"' + (cnt === 3 ? ' class="on"' : '') + '>3 人桌</button>' +
+      '<button data-n="4"' + (cnt === 4 ? ' class="on"' : '') + '>4 人桌</button></div>' +
       '<div class="net-choice">' +
       '<button class="btn primary" id="net-host">创建房间（我是房主）</button>' +
       '<button class="btn" id="net-join">加入房间（我是客人）</button>' +
@@ -278,6 +286,13 @@
       '<p class="net-tip">建议在 Safari / Chrome 中打开；手机需与房主处于同一 WiFi。</p>'
     );
     $('net-back').addEventListener('click', function () { hideRoom(); var s = $('start'); if (s) s.classList.remove('hidden'); });
+    Array.prototype.forEach.call(document.querySelectorAll('#net-count-seg button'), function (b) {
+      b.addEventListener('click', function () {
+        document.querySelectorAll('#net-count-seg button').forEach(function (x) { x.classList.remove('on'); });
+        b.classList.add('on');
+        sm.count = Number(b.getAttribute('data-n'));
+      });
+    });
     $('net-host').addEventListener('click', function () { Net.createRoom(); });
     $('net-join').addEventListener('click', function () { Net.showJoin(); });
   };

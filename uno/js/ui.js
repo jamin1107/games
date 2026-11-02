@@ -44,6 +44,9 @@
     toastTimer = setTimeout(function () { el.classList.remove('show'); }, 1800);
   };
 
+  /* 联机大厅读取主菜单选的桌子大小 */
+  UI.getStartCount = function () { return startCfg.count; };
+
   function openSheet(html) {
     var el = $('sheet');
     if (!el) return;
