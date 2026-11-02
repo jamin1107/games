@@ -28,15 +28,18 @@
     mswap:    { icon: '🔃', name: '乾坤挪移', uses: 1, desc: '与一位手牌数差不超过 2 的对手整手互换' },
     steal:    { icon: '🐑', name: '顺手牵羊', uses: 1, desc: '随机抽一位对手的 1 张手牌加入你的手牌' },
     wreck:    { icon: '🔨', name: '过河拆桥', uses: 1, desc: '随机弃掉一位对手的 1 张手牌进弃牌堆' },
-    brake:    { icon: '🚨', name: '急刹车',   uses: 1, desc: '被动：有对手剩 1 张牌时，自动塞给他 1 张并取消其 UNO' },
+    brake:    { icon: '🚨', name: '急刹车',   uses: 1, desc: '先手动待命：任一对手打到剩 1 张时，塞给他 1 张并取消其 UNO（待命一次生效一次）' },
     delay:    { icon: '⏳', name: '拖延',     uses: 1, desc: '指定一位对手，其下回合开始前先罚摸 1 张' },
-    thorn:    { icon: '🌵', name: '荆棘',     uses: 2, desc: '被动：被 +2 / +4 罚牌时，攻击者也罚摸一半数量（向上取整）' },
-    shield:   { icon: '🛡️', name: '护身符',   uses: 1, desc: '被 +2 / +4 罚牌时，自动反弹给出牌者' },
+    thorn:    { icon: '🌵', name: '荆棘',     uses: 2, desc: '先手动待命：被 +2 / +4 罚牌时，攻击者也罚摸一半数量（向上取整）' },
+    shield:   { icon: '🛡️', name: '护身符',   uses: 1, desc: '先手动待命：被 +2 / +4 罚牌时全部反弹给出牌者，自己不摸' },
     eye:      { icon: '👁️', name: '天眼',     uses: 2, desc: '偷看任一对手的全部手牌，直到你的回合结束' },
     hex:      { icon: '🎭', name: '蛊惑',     uses: 1, desc: '指定一位对手并押一个颜色：他下次打出的颜色与押注一致则摸 2 张，否则你摸 1 张' },
     oracle:   { icon: '🔮', name: '占卜师',   uses: 2, desc: '查看牌堆顶 3 张，可将其中 1 张压到牌堆底' },
-    cloak:    { icon: '🫥', name: '隐形斗篷', uses: 1, desc: '下一次只剩 1 张牌时无需喊 UNO，不会被罚' }
+    cloak:    { icon: '🫥', name: '隐形斗篷', uses: 1, desc: '先手动待命：下一次打到只剩 1 张时无需喊 UNO，不会被罚' }
   };
+
+  /* 待命型技能：需在自己回合先手动发动，条件达成时自动生效一次 */
+  var ARM_SKILLS = ['shield', 'thorn', 'brake', 'cloak'];
 
   E.cardLabel = function (c) {
     if (c.c === 'w') return E.KIND_NAME[c.k];
@@ -70,7 +73,7 @@
       g.skillChoices.push(picks);
       if (!p.isHuman) {
         var id = picks[Math.floor(Math.random() * picks.length)];
-        p.skill = { id: id, uses: E.SKILLS[id].uses };
+        p.skill = { id: id, uses: E.SKILLS[id].uses, armed: false };
         glog(g, p.name + ' 的技能：' + E.SKILLS[id].icon + E.SKILLS[id].name);
       }
     });
@@ -201,10 +204,10 @@
 
   function applyDrawPenalty(g, n, attackerId) {
     var victim = g.players[g.turn];
-    /* 护身符：反弹罚牌给出牌者，受害者不摸牌但仍被跳过 */
+    /* 护身符：待命中则反弹罚牌给出牌者，受害者不摸牌但仍被跳过 */
     var sk = g.skillMode && victim.skill;
-    if (sk && sk.id === 'shield' && sk.uses > 0 && attackerId != null && attackerId !== victim.id) {
-      sk.uses--;
+    if (sk && sk.id === 'shield' && sk.armed && attackerId != null && attackerId !== victim.id) {
+      sk.armed = false;
       var atk = g.players[attackerId];
       var got2 = 0;
       for (var j = 0; j < n; j++) { if (drawOne(g, atk)) got2++; }
@@ -215,10 +218,10 @@
     for (var i = 0; i < n; i++) { if (drawOne(g, victim)) got++; }
     if (got) glog(g, victim.name + ' 被 ' + E.KIND_NAME[n === 2 ? 'd2' : 'w4'] + ' 罚摸 ' + got + ' 张并被跳过');
     else glog(g, victim.name + ' 无牌可摸，被跳过');
-    /* 荆棘：攻击者也罚摸一半 */
+    /* 荆棘：待命中则攻击者也罚摸一半 */
     var th = g.skillMode && victim.skill;
-    if (th && th.id === 'thorn' && th.uses > 0 && attackerId != null && attackerId !== victim.id) {
-      th.uses--;
+    if (th && th.id === 'thorn' && th.armed && attackerId != null && attackerId !== victim.id) {
+      th.armed = false;
       var half = Math.ceil(n / 2);
       var atk2 = g.players[attackerId];
       var gotT = 0;
@@ -300,8 +303,8 @@
     }
     if (p.hand.length === 1) {
       var skC = g.skillMode && p.skill;
-      if (skC && skC.id === 'cloak' && skC.uses > 0) {
-        skC.uses--;
+      if (skC && skC.id === 'cloak' && skC.armed) {
+        skC.armed = false;
         glog(g, p.name + ' 发动【隐形斗篷】，无需喊 UNO');
       } else {
         g.unoPending = p.id;
@@ -312,8 +315,8 @@
       for (var bi = 0; bi < g.players.length; bi++) {
         var bp = g.players[bi];
         var bs = g.skillMode && bp.skill;
-        if (bp.id !== p.id && bs && bs.id === 'brake' && bs.uses > 0) {
-          bs.uses--;
+        if (bp.id !== p.id && bs && bs.id === 'brake' && bs.armed) {
+          bs.armed = false;
           var gotB = drawOne(g, p) ? 1 : 0;
           g.unoPending = -1;
           glog(g, bp.name + ' 发动【急刹车】，塞给 ' + p.name + ' ' + gotB + ' 张牌！');
@@ -515,6 +518,18 @@
     return { t: g.players[target] };
   }
 
+  /* 待命：护身符/荆棘/急刹车/隐形斗篷需在自己回合先手动发动，触发时生效一次 */
+  E.armSkill = function (g, seat, id) {
+    if (ARM_SKILLS.indexOf(id) < 0) return { ok: false, err: '该技能无需待命' };
+    var ck = activeCheck(g, seat, id);
+    if (ck.err) return { ok: false, err: ck.err };
+    if (ck.sk.armed) return { ok: false, err: '已经在待命中' };
+    ck.sk.uses--;
+    ck.sk.armed = true;
+    glog(g, ck.p.name + ' 发动【' + E.SKILLS[id].name + '】，进入待命');
+    return { ok: true };
+  };
+
   /* 迷魂阵：强行反转方向，不消耗回合 */
   E.useReversal = function (g, seat) {
     var ck = activeCheck(g, seat, 'reversal');
@@ -688,7 +703,7 @@
     if (!p || p.skill) return { ok: false, err: '已经选过技能了' };
     var ch = g.skillChoices && g.skillChoices[seat] || [];
     if (ch.indexOf(id) < 0) return { ok: false, err: '不是候选技能' };
-    p.skill = { id: id, uses: E.SKILLS[id].uses };
+    p.skill = { id: id, uses: E.SKILLS[id].uses, armed: false };
     glog(g, p.name + ' 选择技能：' + E.SKILLS[id].icon + E.SKILLS[id].name);
     return { ok: true };
   };

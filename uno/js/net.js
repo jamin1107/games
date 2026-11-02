@@ -675,6 +675,7 @@
       else if (msg.s === 'oracle') ok = E.useOracle(g, seat).ok;
       else if (msg.s === 'oracleMove') ok = E.oracleMove(g, seat, msg.uid).ok;
       else if (msg.s === 'oracleSkip') ok = E.oracleSkip(g, seat).ok;
+      else if (msg.s === 'arm') ok = E.armSkill(g, seat, msg.id).ok;
     }
     UI.render();
     broadcast();
@@ -701,7 +702,7 @@
     var sig = [
       g.turn, g.dir, g.color, g.top.uid, g.log.length, g.over, g.deck.length,
       g.awaiting ? g.awaiting.type : '', g.unoPending,
-      g.players.map(function (p) { return p.hand.length + '@' + (p.skill ? p.skill.id + p.skill.uses : '-'); }).join(','),
+      g.players.map(function (p) { return p.hand.length + '@' + (p.skill ? p.skill.id + p.skill.uses + (p.skill.armed ? 'A' : '') : '-'); }).join(','),
       g.comboSeat == null ? '' : g.comboSeat,
       g.peek ? g.peek.target : '',
       g.windfallUids ? g.windfallUids.join('.') : '',

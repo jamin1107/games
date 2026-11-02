@@ -112,6 +112,7 @@
       if (g.hex && g.hex.target === p.id) marks += '<span class="opp-skill">🎯</span>';
       if (g.delayed && g.delayed.length && g.delayed.indexOf(p.id) >= 0) marks += '<span class="opp-skill">⏳</span>';
       if (g.portalTarget && g.portalTarget.target === p.id) marks += '<span class="opp-skill">🌀</span>';
+      if (p.skill && p.skill.armed) marks += '<span class="opp-skill">⚡</span>';
       var backs = '';
       var shown = Math.min(p.hand.length, 6);
       for (var i = 0; i < shown; i++) backs += '<i class="mini-back" style="transform:rotate(' + ((i - shown / 2) * 4) + 'deg)"></i>';
@@ -179,6 +180,7 @@
     handEl.classList.toggle('tight', my.hand.length > 8);
     handEl.innerHTML = h;
     $('hand-meta').textContent = my.hand.length + ' 张手牌' +
+      (my.skill && my.skill.armed ? ' · ⚡' + E.SKILLS[my.skill.id].name + '待命中' : '') +
       (swapPick >= 0 ? ' · 🔄 点一张要送出的牌' : '') +
       (twinArm ? ' · 👯 点一张能出的数字牌' : '') +
       (refreshPick ? ' · ♻️ 点一张要弃掉的牌' : '');
@@ -196,8 +198,9 @@
       if (g.skillMode && my.skill) {
         var sinfo = E.SKILLS[my.skill.id];
         skb.classList.remove('hidden');
-        skb.textContent = swapPick >= 0 ? '🔄 点手牌取消' : sinfo.icon + ' ' + sinfo.name + ' ×' + my.skill.uses;
-        skb.classList.toggle('empty', my.skill.uses <= 0 && swapPick < 0);
+        skb.textContent = swapPick >= 0 ? '🔄 点手牌取消' : sinfo.icon + ' ' + sinfo.name +
+          (my.skill.armed ? ' ⚡待命' : '') + ' ×' + my.skill.uses;
+        skb.classList.toggle('empty', my.skill.uses <= 0 && !my.skill.armed && swapPick < 0);
       } else {
         skb.classList.add('hidden');
       }
@@ -398,6 +401,14 @@
     doSkill({ a: 'skill', s: 'reversal' }, function () {
       return E.useReversal(g, me);
     });
+  }
+
+  /* 待命型技能：先手动挂上，触发时自动生效 */
+  function doArm(id) {
+    var ok = doSkill({ a: 'skill', s: 'arm', id: id }, function () {
+      return E.armSkill(g, me, id);
+    });
+    if (ok) UI.toastMsg(E.SKILLS[id].icon + ' ' + E.SKILLS[id].name + ' 已待命：条件达成时自动生效');
   }
 
   function doPortal(target) {
@@ -654,14 +665,17 @@
     if (refreshPick) { refreshPick = false; UI.render(); return; }
     var sk = g.players[me].skill;
     var info = E.SKILLS[sk.id];
-    if (sk.uses <= 0) { UI.toastMsg(info.name + ' 的次数已用完'); return; }
+    if (sk.uses <= 0 && !sk.armed) { UI.toastMsg(info.name + ' 的次数已用完'); return; }
     var myTurn = g.turn === me && !g.over;
     var active = ['windfall', 'swap', 'eye', 'reversal', 'portal', 'refresh',
-      'draw3', 'mswap', 'steal', 'wreck', 'delay', 'hex', 'oracle', 'twin']
+      'draw3', 'mswap', 'steal', 'wreck', 'delay', 'hex', 'oracle', 'twin',
+      'shield', 'thorn', 'brake', 'cloak']
       .indexOf(sk.id) >= 0;
     var body = '<div class="sheet-head"><h2>' + info.icon + ' ' + info.name + '</h2><p>' + esc(info.desc) + '</p>' +
-      '<p class="net-tip">剩余 ' + sk.uses + ' 次。</p></div>';
-    if (!active) {
+      (sk.armed
+        ? '<p class="net-tip">⚡ 已待命中：条件达成时自动生效。</p>'
+        : '<p class="net-tip">剩余 ' + sk.uses + ' 次。</p>') + '</div>';
+    if (!active || sk.armed) {
       openSheet(body + '<div class="sheet-foot"><button class="btn primary" id="sk-ok">知道了</button></div>');
       $('sk-ok').addEventListener('click', closeSheet);
       return;
@@ -681,6 +695,7 @@
   /* 按技能 id 分流发动流程 */
   function activateSkill(id, uses) {
     var sub = '剩余 ' + uses + ' 次。';
+    if (id === 'shield' || id === 'thorn' || id === 'brake' || id === 'cloak') { doArm(id); return; }
     if (id === 'windfall') { doDraw(true); return; }
     if (id === 'reversal') { doReversal(); return; }
     if (id === 'draw3') { doDraw2(); return; }
@@ -744,7 +759,8 @@
       '<p><b>万能牌</b>：★ 换色自由出；+4 出完后由你指定颜色，下家摸 4 张。</p>' +
       '<p><b>摸牌</b>：无牌可出就摸一张；摸到的牌如果能出，可以立刻打出或保留。</p>' +
       '<p><b>喊 UNO</b>：打到只剩 1 张时，4 秒内点手牌旁的 UNO！按钮；忘记喊被抓到要罚摸 1 张。AI 也会喊。</p>' +
-      '<p><b>技能模式</b>：开局每人从 3 个候选技能中选 1 个（共 20 种技能池），每局限定次数——</p>' +
+      '<p><b>技能模式</b>：开局每人从 3 个候选技能中选 1 个（共 20 种技能池），每局限定次数。' +
+      '🛡️护身符 / 🌵荆棘 / 🚨急刹车 / 🫥隐形斗篷为待命型：需在自己回合点技能按钮先发动，条件达成时自动生效一次——</p>' +
       '<p>🎲幸运数字（幸运数字当万能出）· ⚡连击（追加出牌）· 👯双子星（带出同数字）· 🔀迷魂阵（强转方向）· 🌀传送门（指定接替出牌者）</p>' +
       '<p>🍀顺风手（摸2选1）· ♻️淘旧换新（弃1摸1）· 🎁无中生有（白摸2张）· 🔄偷天换日（盲换1张）· 🔃乾坤挪移（整手互换，差值≤2）</p>' +
       '<p>🐑顺手牵羊（抽1张）· 🔨过河拆桥（弃1张）· 🚨急刹车（UNO拦截）· ⏳拖延（下回合罚摸）· 🌵荆棘（+2/+4反弹一半）</p>' +

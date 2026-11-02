@@ -18,6 +18,12 @@
     return g.skillMode && p.skill && p.skill.id === id && p.skill.uses > 0;
   }
 
+  /* 待命型技能可用判定：有次数且未在待命中 */
+  function canArm(g, p, id) {
+    return g.skillMode && p.skill && p.skill.id === id &&
+      p.skill.uses > 0 && !p.skill.armed;
+  }
+
   /* 牌的"重量"：越重越想送走 */
   function burden(c) {
     if (c.c === 'w') return c.k === 'w4' ? 9 : 6;
@@ -108,6 +114,14 @@
         if (o.id !== p.id && (!t || o.hand.length < t.hand.length)) t = o;
       });
       return t;
+    }
+    /* 待命型技能：挑时机手动挂上，触发时自动生效 */
+    if (canArm(g, p, 'cloak') && p.hand.length === 2) E.armSkill(g, p.id, 'cloak');
+    if (canArm(g, p, 'shield') && p.hand.length <= 3 && Math.random() < 0.85) E.armSkill(g, p.id, 'shield');
+    if (canArm(g, p, 'thorn') && p.hand.length <= 3 && Math.random() < 0.8) E.armSkill(g, p.id, 'thorn');
+    if (canArm(g, p, 'brake')) {
+      var weak = minOpp();
+      if (weak && weak.hand.length <= 2 && Math.random() < 0.9) E.armSkill(g, p.id, 'brake');
     }
     /* 偷天换日：手牌明显比最少的对手多时，送走最重的牌 */
     if (skillOf(g, p, 'swap')) {
