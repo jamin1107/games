@@ -13,6 +13,9 @@
   var resultsShown = false;
   var pendingWild = -1;       // 等待选颜色的牌
   var startCfg = { mode: 'solo', count: 4 };
+  var unoTimer = null;        // UNO 倒计时/超时惩罚
+  var unoShoutTimer = null;   // AI 自动喊话
+  var AVATAR_COLORS = ['#e0533f', '#3f7fe0', '#43a86b', '#b07d14'];
 
   function $(id) { return document.getElementById(id); }
   function esc(s) {
@@ -86,12 +89,15 @@
       var think = (isTurn && thinkingId === p.id) ? '<span class="think-dot"></span>' : '';
       var backs = '';
       var shown = Math.min(p.hand.length, 6);
-      for (var i = 0; i < shown; i++) backs += '<i class="mini-back"></i>';
+      for (var i = 0; i < shown; i++) backs += '<i class="mini-back" style="transform:rotate(' + ((i - shown / 2) * 4) + 'deg)"></i>';
       if (p.hand.length > 6) backs += '<i class="mini-more">+' + (p.hand.length - 6) + '</i>';
       ops += '<div class="opp' + (isTurn ? ' turn' : '') + '">' +
+        '<div class="opp-top">' +
+          '<span class="opp-avatar" style="background:' + AVATAR_COLORS[p.id % AVATAR_COLORS.length] + '">' + esc(p.name.charAt(0)) + '</span>' +
+          '<div class="opp-id"><div class="opp-name">' + esc(p.name) + uno + think + '</div>' +
+          '<div class="opp-count">' + p.hand.length + ' 张</div></div>' +
+        '</div>' +
         '<div class="opp-cards">' + backs + '</div>' +
-        '<div class="opp-name">' + esc(p.name) + uno + think + '</div>' +
-        '<div class="opp-count">' + p.hand.length + ' 张</div>' +
         '</div>';
     });
     $('opponents').innerHTML = ops;
@@ -99,7 +105,14 @@
     /* 牌桌 */
     var dc = E.deckCount(g);
     $('draw-count').textContent = dc;
-    $('discard').innerHTML = cardHTML(g.top);
+    var tail = g.discardTail || (g.discard ? g.discard.slice(-3) : [g.top]);
+    var dhtml = '';
+    tail.forEach(function (c, i) {
+      if (c.uid === g.top.uid) return;
+      dhtml += '<div class="dp-under" style="transform:translate(-50%,-50%) rotate(' + ((i - tail.length) * 9) + 'deg)">' + cardHTML(c) + '</div>';
+    });
+    dhtml += cardHTML(g.top);
+    $('discard').innerHTML = dhtml;
     $('dir-arrow').textContent = g.dir === 1 ? '⟳' : '⟲';
     var ac = $('active-color');
     ac.className = 'active-color dot-' + g.color;
@@ -123,8 +136,30 @@
       var isDrawn = c.uid === g.drawnUid;
       h += cardHTML(c, (playable ? ' playable' : ' dim') + (isDrawn ? ' drawn' : ''));
     });
-    $('hand').innerHTML = h;
+    var handEl = $('hand');
+    handEl.classList.toggle('tight', my.hand.length > 8);
+    handEl.innerHTML = h;
     $('hand-meta').textContent = my.hand.length + ' 张手牌';
+
+    /* UNO 喊话按钮 */
+    var ub = $('uno-btn');
+    if (ub) {
+      if (!g.over && g.unoPending === me) ub.classList.remove('hidden');
+      else ub.classList.add('hidden');
+    }
+
+    /* AI 剩 1 张自动喊话（单机/房主驱动） */
+    if (!g.over && g.unoPending >= 0 && !g.players[g.unoPending].isHuman &&
+        (mode !== 'net' || (UI.net && UI.net.role === 'host'))) {
+      clearTimeout(unoShoutTimer);
+      unoShoutTimer = setTimeout(function () {
+        if (!g || g.over || g.unoPending < 0 || g.players[g.unoPending].isHuman) return;
+        E.shoutUno(g, g.unoPending);
+        UI.render();
+      }, 600 + Math.random() * 600);
+    }
+
+    ensureUnoTimer();
 
     /* 提示与操作条 */
     var hint = '';
@@ -223,6 +258,38 @@
     commit();
   }
 
+  /* 喊 UNO */
+  function doShout() {
+    if (!g || g.over || g.unoPending !== me) return;
+    if (mode === 'net' && UI.net && UI.net.role === 'guest') {
+      Net.sendAction({ a: 'uno' });
+      var ub = $('uno-btn');
+      if (ub) ub.disabled = true;
+      setTimeout(function () { if (ub) ub.disabled = false; }, 1500);
+      return;
+    }
+    var r = E.shoutUno(g, me);
+    if (!r.ok) { UI.toastMsg(r.err || '现在不能喊'); return; }
+    UI.render();
+  }
+
+  /* UNO 倒计时：显示剩余时间，超时（单机/房主）执行罚摸 */
+  function ensureUnoTimer() {
+    clearInterval(unoTimer);
+    unoTimer = setInterval(function () {
+      if (!g || g.over || g.unoPending == null || g.unoPending < 0) return;
+      var ub = $('uno-btn');
+      if (g.unoPending === me && ub) {
+        var left = Math.max(0, (g.unoDeadline - Date.now()) / 1000);
+        ub.textContent = 'UNO! ' + left.toFixed(1) + 's';
+      }
+      if (Date.now() > g.unoDeadline + 1500 &&
+          (mode !== 'net' || (UI.net && UI.net.role === 'host'))) {
+        if (E.unoExpired(g)) { UI.render(); UI.pump(); }
+      }
+    }, 250);
+  }
+
   /* ---------------- 弹层 ---------------- */
 
   function openColorSheet(uid) {
@@ -264,7 +331,7 @@
       '<p><b>功能牌</b>：⊘ 跳过下家；⇄ 反转方向（双人局等同跳过）；+2 / +4 让下家罚摸并跳过。</p>' +
       '<p><b>万能牌</b>：★ 换色自由出；+4 出完后由你指定颜色，下家摸 4 张。</p>' +
       '<p><b>摸牌</b>：无牌可出就摸一张；摸到的牌如果能出，可以立刻打出或保留。</p>' +
-      '<p><b>UNO</b>：手上只剩 1 张牌时自动为你喊 UNO。</p>' +
+      '<p><b>喊 UNO</b>：打到只剩 1 张时，4 秒内点右下角红色 UNO！按钮；忘记喊被抓到要罚摸 2 张。AI 也会喊。</p>' +
       '</div>' +
       '<div class="sheet-foot"><button class="btn primary" id="sheet-ok">明白了</button></div>'
     );
@@ -398,6 +465,8 @@
     if (btnLog) btnLog.addEventListener('click', openLogSheet);
     var btnHelp = $('btn-help');
     if (btnHelp) btnHelp.addEventListener('click', openRulesSheet);
+    var btnUno = $('uno-btn');
+    if (btnUno) btnUno.addEventListener('click', doShout);
 
     /* 手牌点击（事件委托） */
     $('hand').addEventListener('click', function (ev) {

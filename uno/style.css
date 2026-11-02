@@ -109,7 +109,22 @@ button { font-family: inherit; }
   border: 1px solid rgba(255, 255, 255, .18);
 }
 .mini-more { font-size: 9px; color: var(--muted); margin-left: 2px; }
-.opp-name { font-size: 12px; display: flex; align-items: center; gap: 6px; }
+.opp-top { display: flex; align-items: center; gap: 7px; }
+.opp-avatar {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: #fff;
+  border: 2px solid rgba(255, 255, 255, .4);
+  flex: 0 0 auto;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .4);
+}
+.opp-id { min-width: 0; flex: 1 1 auto; }
+.opp-name { font-size: 12px; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
 .opp-count { font-size: 10px; color: var(--muted); }
 .uno-badge {
   font-size: 9px;
@@ -217,7 +232,18 @@ button { font-family: inherit; }
 .dot-b { background: var(--blue); }
 .dot-w { background: conic-gradient(var(--red) 0 25%, var(--blue) 0 50%, var(--yellow) 0 75%, var(--green) 0); }
 
-.discard { filter: drop-shadow(0 10px 22px rgba(0, 0, 0, .55)); animation: dealIn .28s ease; }
+.discard {
+  position: relative;
+  width: 84px; height: 126px;
+  filter: drop-shadow(0 10px 22px rgba(0, 0, 0, .55));
+  animation: dealIn .28s ease;
+}
+.dp-under {
+  position: absolute;
+  left: 50%; top: 50%;
+  opacity: .92;
+}
+.dp-under .ucard { box-shadow: 0 3px 10px rgba(0, 0, 0, .45); }
 @keyframes dealIn {
   from { transform: translateY(-14px) scale(1.08); opacity: 0; }
   to { transform: none; opacity: 1; }
@@ -234,12 +260,21 @@ button { font-family: inherit; }
 .ucard {
   position: relative;
   width: 84px; height: 126px;
-  border-radius: 10px;
+  border-radius: 11px;
   background: #f4f5f7;
   border: 1px solid rgba(0, 0, 0, .35);
+  box-shadow: 0 5px 14px rgba(0, 0, 0, .4);
   overflow: hidden;
   flex: 0 0 auto;
   transition: transform .15s, box-shadow .15s;
+}
+.ucard::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border-radius: 8px;
+  border: 2px solid rgba(255, 255, 255, .5);
+  pointer-events: none;
 }
 .uc-oval {
   position: absolute;
@@ -267,10 +302,10 @@ button { font-family: inherit; }
 .uc-corner.tl { left: 6px; top: 5px; }
 .uc-corner.br { right: 6px; bottom: 5px; transform: rotate(180deg); }
 
-.c-r { background: var(--red); } .c-r .uc-val, .c-r .uc-corner { color: var(--red); }
-.c-y { background: var(--yellow); } .c-y .uc-val, .c-y .uc-corner { color: #b07d14; }
-.c-g { background: var(--green); } .c-g .uc-val, .c-g .uc-corner { color: var(--green); }
-.c-b { background: var(--blue); } .c-b .uc-val, .c-b .uc-corner { color: var(--blue); }
+.c-r { background: linear-gradient(155deg, #ef6a55, #c93a28); } .c-r .uc-val, .c-r .uc-corner { color: #b32f1f; }
+.c-y { background: linear-gradient(155deg, #f7c659, #e09a1e); } .c-y .uc-val, .c-y .uc-corner { color: #a5720f; }
+.c-g { background: linear-gradient(155deg, #5bbd82, #2f8554); } .c-g .uc-val, .c-g .uc-corner { color: #27734a; }
+.c-b { background: linear-gradient(155deg, #5c94ec, #2f63b8); } .c-b .uc-val, .c-b .uc-corner { color: #2a56a0; }
 .c-w { background: #1c2230; }
 .c-w .uc-oval { background: conic-gradient(var(--red) 0 25%, var(--blue) 0 50%, var(--yellow) 0 75%, var(--green) 0); }
 .c-w .uc-val, .c-w .uc-corner { color: #fff; }
@@ -303,6 +338,10 @@ button { font-family: inherit; }
 .hand .ucard.playable:active { transform: translateY(-6px) scale(1.04); }
 .hand .ucard.dim { filter: brightness(.55) saturate(.7); }
 .hand .ucard.drawn { outline: 2px dashed rgba(255, 255, 255, .5); outline-offset: 2px; }
+.hand.tight { gap: 8px; }
+.hand.tight .ucard { margin-right: -16px; }
+.hand.tight .ucard:last-child { margin-right: 0; }
+.hand.tight .ucard.playable { z-index: 5; }
 
 /* ---------- 操作条 ---------- */
 .actionbar {
@@ -393,6 +432,22 @@ button { font-family: inherit; }
   filter: drop-shadow(0 6px 18px rgba(0, 0, 0, .5));
 }
 .start-tagline { margin: 0; font-size: 13px; line-height: 1.9; color: var(--muted); }
+.start-deco { display: flex; gap: 16px; margin-bottom: 4px; }
+.deco-card {
+  width: 44px; height: 64px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 20px;
+  color: #fff;
+  border: 2px solid rgba(255, 255, 255, .55);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .45);
+}
+.dc-r { background: linear-gradient(155deg, #ef6a55, #c93a28); transform: rotate(-12deg) translateY(4px); }
+.dc-g { background: linear-gradient(155deg, #5bbd82, #2f8554); transform: translateY(-2px); }
+.dc-b { background: linear-gradient(155deg, #5c94ec, #2f63b8); transform: rotate(12deg) translateY(4px); }
 .mode-note { margin: 2px 0 8px; font-size: 11px; color: var(--muted); min-height: 16px; }
 .start-foot { font-size: 10px; letter-spacing: .2em; color: rgba(190, 200, 216, .4); }
 
@@ -476,6 +531,30 @@ button { font-family: inherit; }
 .res-rank { font-size: 18px; }
 .res-name { flex: 1 1 auto; font-weight: 700; }
 .res-left { font-size: 11px; color: var(--muted); }
+
+/* ---------- UNO 喊话按钮 ---------- */
+.uno-btn {
+  position: fixed;
+  right: max(18px, calc(50vw - 242px));
+  bottom: calc(158px + var(--safe-b));
+  width: 86px; height: 86px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, .92);
+  background: radial-gradient(circle at 32% 28%, #ff7a63, #d13a26 72%);
+  color: #fff;
+  font-size: 19px;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: .02em;
+  box-shadow: 0 8px 26px rgba(209, 58, 38, .55);
+  z-index: 30;
+  animation: unoPulse 1s infinite;
+  cursor: pointer;
+}
+@keyframes unoPulse {
+  50% { transform: scale(1.08); box-shadow: 0 8px 32px rgba(209, 58, 38, .8); }
+}
+.uno-btn:disabled { opacity: .45; animation: none; }
 
 /* ---------- Toast ---------- */
 .toast {

@@ -78,6 +78,8 @@
       round: 1,
       awaiting: null,   // { type:'drawn' } 摸到牌可出时等待决定
       drawnUid: -1,
+      unoPending: -1,   // 剩 1 张待喊 UNO 的座位
+      unoDeadline: 0,   // 喊话截止时间戳
       log: []
     };
     glog(g, '游戏开始，起始牌 ' + E.cardLabel(first) + '，由 ' + players[0].name + ' 先出');
@@ -148,7 +150,11 @@
       glog(g, p.name + ' 出完了所有手牌，获胜！');
       return { ok: true };
     }
-    if (p.hand.length === 1) glog(g, p.name + ' 只剩 1 张牌，UNO！');
+    if (p.hand.length === 1) {
+      g.unoPending = p.id;
+      g.unoDeadline = Date.now() + 4000;
+      glog(g, p.name + ' 只剩 1 张牌！');
+    }
 
     var N = g.players.length;
     switch (c.k) {
@@ -205,6 +211,27 @@
     g.drawnUid = -1;
     step(g, 1);
     return { ok: true };
+  };
+
+  /* 喊 UNO：剩 1 张的玩家在时限内喊话 */
+  E.shoutUno = function (g, seat) {
+    if (g.over || g.unoPending !== seat) return { ok: false, err: '现在不用喊 UNO' };
+    if (Date.now() > g.unoDeadline + 1500) return { ok: false, err: '太慢了' };
+    glog(g, g.players[seat].name + '：UNO！');
+    g.unoPending = -1;
+    return { ok: true };
+  };
+
+  /* 超时没喊：罚摸 2 张。返回是否有惩罚发生 */
+  E.unoExpired = function (g) {
+    if (g.over || g.unoPending == null || g.unoPending < 0) return false;
+    if (Date.now() <= g.unoDeadline) return false;
+    var p = g.players[g.unoPending];
+    var got = 0;
+    for (var i = 0; i < 2; i++) { if (drawOne(g, p)) got++; }
+    g.unoPending = -1;
+    glog(g, p.name + ' 忘了喊 UNO，被抓罚摸 ' + got + ' 张');
+    return true;
   };
 
   /* 结算：按剩牌数排名 */

@@ -517,7 +517,8 @@
     var UI = U.UI;
     var g = UI.g;
     if (!g || g.over || !UI.net || UI.net.role !== 'host') return;
-    if (g.turn !== seat) return;
+    if (g.turn !== seat && msg.a !== 'uno') return;
+    E.unoExpired(g);
     var ok = false;
     if (msg.a === 'play') {
       var r = E.playCard(g, msg.uid, msg.color);
@@ -527,6 +528,8 @@
       ok = E.drawCard(g).ok;
     } else if (msg.a === 'keep') {
       ok = E.passDrawn(g).ok;
+    } else if (msg.a === 'uno') {
+      ok = E.shoutUno(g, seat).ok;
     }
     UI.render();
     broadcast();
@@ -552,7 +555,7 @@
     if (!g || !UI.net || UI.net.role !== 'host') return;
     var sig = [
       g.turn, g.dir, g.color, g.top.uid, g.log.length, g.over, g.deck.length,
-      g.awaiting ? 'd' : '',
+      g.awaiting ? 'd' : '', g.unoPending,
       g.players.map(function (p) { return p.hand.length; }).join(',')
     ].join('|');
     if (sig === sm.syncSig) return;
@@ -580,6 +583,7 @@
     v.deckCount = g.deck.length;
     v.deck = [];
     v.discard = [];
+    v.discardTail = g.discard.slice(-3);
     v.mySeat = seat;
     v.players.forEach(function (p) {
       if (p.id !== seat) p.hand = [];
