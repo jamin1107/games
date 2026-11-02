@@ -327,7 +327,6 @@
       var hx = g.hex;
       g.hex = null;
       var byP = g.players[hx.by], tgP = g.players[hx.target];
-      if (byP && byP.skill) byP.skill.uses--;
       if (g.color === hx.color) {
         var gotH = 0;
         for (var hi = 0; hi < 2; hi++) { if (drawOne(g, tgP)) gotH++; }
