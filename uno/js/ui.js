@@ -13,8 +13,8 @@
   var resultsShown = false;
   var pendingWild = -1;       // 等待选颜色的牌
   var startCfg = { mode: 'solo', count: 4, play: 'classic' };
-  var unoTimer = null;        // UNO 倒计时/超时惩罚
   var unoShoutTimer = null;   // AI 自动喊话
+  var unoCatchTimer = null;   // AI 抓 UNO
   var skillPickOpen = false;  // 技能选择弹层状态
   var swapPick = -1;          // 偷天换日：等待点选要送出的手牌
   var eyeShownFor = -1;       // 天眼弹层当前展示的目标
@@ -192,10 +192,10 @@
       (twinArm ? ' · 👯 点一张能出的数字牌' : '') +
       (refreshPick ? ' · ♻️ 点一张要弃掉的牌' : '');
 
-    /* UNO 喊话按钮 */
+    /* UNO 按钮：有人剩 1 张时对所有人出现（本人先按=安全，对手先按=抓罚），无倒计时提示 */
     var ub = $('uno-btn');
     if (ub) {
-      if (!g.over && g.unoPending === me) ub.classList.remove('hidden');
+      if (!g.over && g.unoPending >= 0) ub.classList.remove('hidden');
       else ub.classList.add('hidden');
     }
 
@@ -219,12 +219,27 @@
       clearTimeout(unoShoutTimer);
       unoShoutTimer = setTimeout(function () {
         if (!g || g.over || g.unoPending < 0 || g.players[g.unoPending].isHuman) return;
-        E.shoutUno(g, g.unoPending);
+        E.unoPress(g, g.unoPending);
         UI.render();
+        if (mode === 'net') Net.sync();
       }, 600 + Math.random() * 600);
     }
 
-    ensureUnoTimer();
+    /* AI 抓 UNO：人类剩 1 张没喊时，AI 随机时机抢按（未必每次都注意） */
+    if (!g.over && g.unoPending >= 0 && !g.players[g.unoPending].isHuman &&
+        (mode !== 'net' || (UI.net && UI.net.role === 'host'))) {
+      clearTimeout(unoCatchTimer);
+      unoCatchTimer = setTimeout(function () {
+        if (!g || g.over || g.unoPending < 0 || g.players[g.unoPending].isHuman) return;
+        if (Math.random() < 0.75) {
+          var catchers = g.players.filter(function (p) { return !p.isHuman && p.id !== g.unoPending; });
+          if (catchers.length && E.unoPress(g, catchers[Math.floor(Math.random() * catchers.length)].id).ok) {
+            UI.render();
+            if (mode === 'net') Net.sync();
+          }
+        }
+      }, 1000 + Math.random() * 2200);
+    }
 
     /* 提示与操作条 */
     var hint = '';
@@ -583,36 +598,20 @@
     });
   }
 
-  /* 喊 UNO */
+  /* 按 UNO：本人先按 = 喊话安全；对手先按 = 抓罚。先按先得，由房主裁决 */
   function doShout() {
-    if (!g || g.over || g.unoPending !== me) return;
+    if (!g || g.over || g.unoPending == null || g.unoPending < 0) return;
     if (mode === 'net' && UI.net && UI.net.role === 'guest') {
       Net.sendAction({ a: 'uno' });
       var ub = $('uno-btn');
       if (ub) ub.disabled = true;
-      setTimeout(function () { if (ub) ub.disabled = false; }, 1500);
+      setTimeout(function () { if (ub) ub.disabled = false; }, 1200);
       return;
     }
-    var r = E.shoutUno(g, me);
-    if (!r.ok) { UI.toastMsg(r.err || '现在不能喊'); return; }
+    var r = E.unoPress(g, me);
+    if (!r.ok) { UI.toastMsg(r.err || '现在不能按'); return; }
     UI.render();
-  }
-
-  /* UNO 倒计时：显示剩余时间，超时（单机/房主）执行罚摸 */
-  function ensureUnoTimer() {
-    clearInterval(unoTimer);
-    unoTimer = setInterval(function () {
-      if (!g || g.over || g.unoPending == null || g.unoPending < 0) return;
-      var ub = $('uno-btn');
-      if (g.unoPending === me && ub) {
-        var left = Math.max(0, (g.unoDeadline - Date.now()) / 1000);
-        ub.textContent = 'UNO! ' + left.toFixed(1) + 's';
-      }
-      if (Date.now() > g.unoDeadline + 1500 &&
-          (mode !== 'net' || (UI.net && UI.net.role === 'host'))) {
-        if (E.unoExpired(g)) { UI.render(); UI.pump(); }
-      }
-    }, 250);
+    if (mode === 'net') Net.sync();
   }
 
   /* ---------------- 弹层 ---------------- */
@@ -887,7 +886,7 @@
       '<p><b>功能牌</b>：⊘ 跳过下家；⇄ 反转方向（双人局等同跳过）；+2 / +4 让下家罚摸并跳过。</p>' +
       '<p><b>万能牌</b>：★ 换色自由出；+4 出完后由你指定颜色，下家摸 4 张。</p>' +
       '<p><b>摸牌</b>：无牌可出就摸一张；摸到的牌如果能出，可以立刻打出或保留。</p>' +
-      '<p><b>喊 UNO</b>：打到只剩 1 张时，4 秒内点手牌旁的 UNO！按钮；忘记喊被抓到要罚摸 1 张。AI 也会喊。</p>' +
+      '<p><b>喊 UNO</b>：打到只剩 1 张时，所有人界面都会出现一个 UNO 按钮——本人先按=安全；4 秒内没按被对手抢先按住，罚摸 2 张。按钮不带倒计时，全凭反应，先按先得。AI 也会喊、也会抓。</p>' +
       '<p><b>技能模式</b>：开局每人从 3 个候选技能中选 1 个（共 30 种技能池），每局限定次数。' +
       '🛡️护身符 / 🌵荆棘 / 🚨急刹车 / 🫥隐形斗篷 / 🧘稳如水豚为待命型：需在自己回合点技能按钮先发动，条件达成时自动生效一次——</p>' +
       '<p>🎲幸运数字（幸运数字当万能出）· ⚡连击（追加出牌）· 👯双子星（带出同数字）· 🔀迷魂阵（强转方向）· 🌀传送门（指定接替出牌者）</p>' +

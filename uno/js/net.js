@@ -659,7 +659,6 @@
     var g = UI.g;
     if (!g || g.over || !UI.net || UI.net.role !== 'host') return;
     if (g.turn !== seat && msg.a !== 'uno' && msg.a !== 'skill') return;
-    E.unoExpired(g);
     var ok = false;
     var err = '';
     if (msg.a === 'play') {
@@ -672,7 +671,7 @@
     } else if (msg.a === 'keep') {
       ok = E.passDrawn(g).ok;
     } else if (msg.a === 'uno') {
-      ok = E.shoutUno(g, seat).ok;
+      ok = E.unoPress(g, seat).ok; /* 本人先按=喊话，对手先按=抓罚 */
     } else if (msg.a === 'skill') {
       if (msg.s === 'pick') ok = E.assignSkill(g, seat, msg.id).ok;
       else if (msg.s === 'swap') ok = E.useSwap(g, seat, msg.uid, msg.target).ok;

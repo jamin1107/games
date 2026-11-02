@@ -935,25 +935,21 @@
     return { ok: true };
   };
 
-  /* 喊 UNO：剩 1 张的玩家在时限内喊话 */
-  E.shoutUno = function (g, seat) {
-    if (g.over || g.unoPending !== seat) return { ok: false, err: '现在不用喊 UNO' };
+  /* 按 UNO 按钮：本人先按 = 喊话安全；对手先按 = 抓罚 +2。先按先得 */
+  E.unoPress = function (g, seat) {
+    if (g.over || g.unoPending == null || g.unoPending < 0) return { ok: false, err: '现在没有 UNO 可喊' };
     if (Date.now() > g.unoDeadline + 1500) return { ok: false, err: '太慢了' };
-    glog(g, g.players[seat].name + '：UNO！');
-    g.unoPending = -1;
-    return { ok: true };
-  };
-
-  /* 超时没喊：罚摸 1 张。返回是否有惩罚发生 */
-  E.unoExpired = function (g) {
-    if (g.over || g.unoPending == null || g.unoPending < 0) return false;
-    if (Date.now() <= g.unoDeadline) return false;
-    var p = g.players[g.unoPending];
+    if (g.unoPending === seat) {
+      glog(g, g.players[seat].name + '：UNO！');
+      g.unoPending = -1;
+      return { ok: true };
+    }
+    var victim = g.players[g.unoPending];
     var got = 0;
-    for (var i = 0; i < 1; i++) { if (drawOne(g, p)) got++; }
+    for (var i = 0; i < 2; i++) { if (drawOne(g, victim)) got++; }
     g.unoPending = -1;
-    glog(g, p.name + ' 忘了喊 UNO，被抓罚摸 ' + got + ' 张');
-    return true;
+    glog(g, g.players[seat].name + ' 抓住 ' + victim.name + ' 没喊 UNO，罚摸 ' + got + ' 张！');
+    return { ok: true, caught: true };
   };
 
   /* 结算：按剩牌数排名 */
