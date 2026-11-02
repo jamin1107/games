@@ -62,6 +62,11 @@
     return c.k;
   }
 
+  function faceImg(c) {
+    if (/^[0-9]$/.test(c.k)) return 'assets/face-' + c.c + c.k + '.jpg';
+    return 'assets/face-' + c.c + '.jpg';
+  }
+
   function cardHTML(c, extraCls) {
     var cls = 'ucard c-' + c.c + (extraCls ? ' ' + extraCls : '');
     if (c.c === 'w') cls += ' c-w';
@@ -70,7 +75,7 @@
     if (c.c === 'w') {
       oval = '<b class="uc-val">' + v + '</b>';
     } else {
-      oval = '<img class="uc-art" src="assets/face-' + c.c + '.jpg" alt="">';
+      oval = '<img class="uc-art" src="' + faceImg(c) + '" alt="">';
     }
     return '<div class="' + cls + '" data-uid="' + c.uid + '">' +
       '<i class="uc-corner tl">' + v + '</i>' +
