@@ -499,11 +499,12 @@
     var count = sm.count;
     var humanIds = [0].concat(seats);
     var names = ['房主', '玩家2', '玩家3', '玩家4'];
-    var g = E.createGame({ playerCount: count, humanIds: humanIds, names: names });
+    var g = E.createGame({ playerCount: count, humanIds: humanIds, names: names, skillMode: U.UI.skillMode });
     var UI = U.UI;
     UI.g = g;
     UI.me = 0;
     UI.mode = 'net';
+    if (UI.netMode) UI.netMode();
     UI.net = { role: 'host', seat: 0, room: sm.room };
     sm.syncSig = '';
     hideRoom();
@@ -517,7 +518,7 @@
     var UI = U.UI;
     var g = UI.g;
     if (!g || g.over || !UI.net || UI.net.role !== 'host') return;
-    if (g.turn !== seat && msg.a !== 'uno') return;
+    if (g.turn !== seat && msg.a !== 'uno' && msg.a !== 'skill') return;
     E.unoExpired(g);
     var ok = false;
     if (msg.a === 'play') {
@@ -525,11 +526,17 @@
       ok = !!(r && r.ok);
       if (ok && g.over) UI.showResults();
     } else if (msg.a === 'draw') {
-      ok = E.drawCard(g).ok;
+      ok = E.drawCard(g, msg.wf).ok;
     } else if (msg.a === 'keep') {
       ok = E.passDrawn(g).ok;
     } else if (msg.a === 'uno') {
       ok = E.shoutUno(g, seat).ok;
+    } else if (msg.a === 'skill') {
+      if (msg.s === 'pick') ok = E.assignSkill(g, seat, msg.id).ok;
+      else if (msg.s === 'swap') ok = E.useSwap(g, seat, msg.uid, msg.target).ok;
+      else if (msg.s === 'eye') ok = E.useEye(g, seat, msg.target).ok;
+      else if (msg.s === 'wfkeep') ok = E.windfallKeep(g, seat, msg.uid).ok;
+      else if (msg.s === 'combopass') ok = E.passCombo(g).ok;
     }
     UI.render();
     broadcast();
@@ -555,8 +562,11 @@
     if (!g || !UI.net || UI.net.role !== 'host') return;
     var sig = [
       g.turn, g.dir, g.color, g.top.uid, g.log.length, g.over, g.deck.length,
-      g.awaiting ? 'd' : '', g.unoPending,
-      g.players.map(function (p) { return p.hand.length; }).join(',')
+      g.awaiting ? g.awaiting.type : '', g.unoPending,
+      g.players.map(function (p) { return p.hand.length + '@' + (p.skill ? p.skill.id + p.skill.uses : '-'); }).join(','),
+      g.comboSeat == null ? '' : g.comboSeat,
+      g.peek ? g.peek.target : '',
+      g.windfallUids ? g.windfallUids.join('.') : ''
     ].join('|');
     if (sig === sm.syncSig) return;
     sm.syncSig = sig;
@@ -585,8 +595,10 @@
     v.discard = [];
     v.discardTail = g.discard.slice(-3);
     v.mySeat = seat;
+    /* 天眼生效中：把被偷看对象的手牌一并发给使用者 */
+    var peeking = g.peek && g.peek.by === seat ? g.peek.target : -1;
     v.players.forEach(function (p) {
-      if (p.id !== seat) p.hand = [];
+      if (p.id !== seat && p.id !== peeking) p.hand = [];
     });
     if (v.turn !== seat) { v.awaiting = null; v.drawnUid = -1; }
     return v;

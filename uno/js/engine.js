@@ -7,6 +7,18 @@
   E.COLOR_NAME = { r: '红色', y: '黄色', g: '绿色', b: '蓝色' };
   E.KIND_NAME = { skip: '跳过', rev: '反转', d2: '+2', wild: '换色', w4: '+4' };
 
+  /* ---------------- 技能模式 ---------------- */
+  var SKILL_IDS = ['wild9', 'shield', 'windfall', 'swap', 'combo', 'eye'];
+  E.SKILL_IDS = SKILL_IDS;
+  E.SKILLS = {
+    wild9:    { icon: '🌈', name: '变色九',   uses: 2, desc: '你出数字 9 时，可声明为任意颜色' },
+    shield:   { icon: '🛡️', name: '护身符',   uses: 1, desc: '被 +2 / +4 罚牌时，自动反弹给出牌者' },
+    windfall: { icon: '🍀', name: '顺风手',   uses: 2, desc: '摸牌时改为摸 2 张，选 1 张保留，另 1 张塞回牌堆底' },
+    swap:     { icon: '🔄', name: '偷天换日', uses: 1, desc: '送出 1 张手牌，与任一对手随机盲换' },
+    combo:    { icon: '⚡', name: '连击',     uses: 1, desc: '出牌后若手里还有同色或同数字的牌，可立刻追加打出 1 张' },
+    eye:      { icon: '👁️', name: '天眼',     uses: 2, desc: '偷看任一对手的全部手牌，直到你的回合结束' }
+  };
+
   E.cardLabel = function (c) {
     if (c.c === 'w') return E.KIND_NAME[c.k];
     if (c.k === 'skip' || c.k === 'rev' || c.k === 'd2') return E.COLOR_NAME[c.c] + ' ' + E.KIND_NAME[c.k];
@@ -24,6 +36,25 @@
   function glog(g, text) {
     g.log.push({ t: text, n: g.log.length + 1 });
     if (g.log.length > 240) g.log.shift();
+  }
+
+  /* 发技能候选：每人 3 选 1，AI 立即随机选定 */
+  function dealSkills(g) {
+    g.skillChoices = [];
+    g.players.forEach(function (p) {
+      var pool = SKILL_IDS.slice();
+      for (var i = pool.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var t = pool[i]; pool[i] = pool[j]; pool[j] = t;
+      }
+      var picks = pool.slice(0, 3);
+      g.skillChoices.push(picks);
+      if (!p.isHuman) {
+        var id = picks[Math.floor(Math.random() * picks.length)];
+        p.skill = { id: id, uses: E.SKILLS[id].uses };
+        glog(g, p.name + ' 的技能：' + E.SKILLS[id].icon + E.SKILLS[id].name);
+      }
+    });
   }
 
   E.createGame = function (opts) {
@@ -51,7 +82,8 @@
         id: i,
         name: opts.names && opts.names[i] ? opts.names[i] : '玩家' + (i + 1),
         isHuman: (opts.humanIds || [0]).indexOf(i) >= 0,
-        hand: []
+        hand: [],
+        skill: null
       });
     }
     for (var r = 0; r < 7; r++) players.forEach(function (p) { p.hand.push(deck.pop()); });
@@ -76,13 +108,22 @@
       over: false,
       winner: -1,
       round: 1,
-      awaiting: null,   // { type:'drawn' } 摸到牌可出时等待决定
+      awaiting: null,   // { type:'drawn' | 'windfall' } 摸牌后等待决定
       drawnUid: -1,
       unoPending: -1,   // 剩 1 张待喊 UNO 的座位
       unoDeadline: 0,   // 喊话截止时间戳
+      skillMode: !!opts.skillMode,
+      skillChoices: null, // {座位: [3 个技能 id]}
+      comboSeat: null,    // 有连击机会的座位（可追加出一张）
+      windfallUids: null, // 顺风手摸到的 2 张牌 uid
+      peek: null,         // 天眼 { by, target }
       log: []
     };
     glog(g, '游戏开始，起始牌 ' + E.cardLabel(first) + '，由 ' + players[0].name + ' 先出');
+    if (g.skillMode) {
+      dealSkills(g);
+      glog(g, '技能模式：每人在候选技能中选 1 个，本局限定次数');
+    }
     return g;
   };
 
@@ -92,6 +133,9 @@
   function step(g, n) {
     var N = g.players.length;
     g.turn = ((g.turn + g.dir * n) % N + N) % N;
+    /* 天眼：离开使用者的回合即失效；连击机会随回合结束作废 */
+    if (g.peek && g.peek.by !== g.turn) g.peek = null;
+    if (g.comboSeat != null && g.turn !== g.comboSeat) g.comboSeat = null;
   }
 
   /* 摸一张：牌堆空了就把弃牌堆（保留顶牌）重洗 */
@@ -109,8 +153,18 @@
     return true;
   }
 
-  function applyDrawPenalty(g, n) {
+  function applyDrawPenalty(g, n, attackerId) {
     var victim = g.players[g.turn];
+    /* 护身符：反弹罚牌给出牌者，受害者不摸牌但仍被跳过 */
+    var sk = g.skillMode && victim.skill;
+    if (sk && sk.id === 'shield' && sk.uses > 0 && attackerId != null && attackerId !== victim.id) {
+      sk.uses--;
+      var atk = g.players[attackerId];
+      var got2 = 0;
+      for (var j = 0; j < n; j++) { if (drawOne(g, atk)) got2++; }
+      glog(g, victim.name + ' 发动【护身符】！罚牌反弹，' + atk.name + ' 罚摸 ' + got2 + ' 张');
+      return;
+    }
     var got = 0;
     for (var i = 0; i < n; i++) { if (drawOne(g, victim)) got++; }
     if (got) glog(g, victim.name + ' 被 ' + E.KIND_NAME[n === 2 ? 'd2' : 'w4'] + ' 罚摸 ' + got + ' 张并被跳过');
@@ -123,7 +177,8 @@
     return c.c === g.color || c.k === g.top.k;
   };
 
-  /* 出牌。wild/w4 必须带 color（r/y/g/b） */
+  /* 出牌。wild/w4 必须带 color（r/y/g/b）。
+     变色九：数字 9 跟不上时带 color 出，消耗 1 次技能，改为声明颜色。 */
   E.playCard = function (g, uid, color) {
     if (g.over) return { ok: false, err: '对局已结束' };
     var p = g.players[g.turn];
@@ -131,7 +186,12 @@
     p.hand.forEach(function (c, i) { if (c.uid === uid) idx = i; });
     if (idx < 0) return { ok: false, err: '这张牌不在你手里' };
     var c = p.hand[idx];
-    if (!E.playable(g, c)) return { ok: false, err: '这张牌跟不上' };
+    var wild9 = false;
+    if (!E.playable(g, c)) {
+      var sk0 = g.skillMode && p.skill;
+      if (sk0 && sk0.id === 'wild9' && sk0.uses > 0 && c.k === '9' && color) wild9 = true;
+      else return { ok: false, err: '这张牌跟不上' };
+    }
     if (c.c === 'w' && !color) return { ok: false, err: '请先选颜色' };
 
     p.hand.splice(idx, 1);
@@ -139,14 +199,28 @@
     g.top = c;
     g.awaiting = null;
     g.drawnUid = -1;
+    g.windfallUids = null;
     if (c.c === 'w') g.color = color; else g.color = c.c;
 
-    var extra = c.c === 'w' ? '，指定 ' + E.COLOR_NAME[color] : '';
-    glog(g, p.name + ' 打出 ' + E.cardLabel(c) + extra);
+    /* 连击追加出牌：消耗技能次数 */
+    if (g.comboSeat === p.id) {
+      g.comboSeat = null;
+      if (p.skill) p.skill.uses--;
+      glog(g, p.name + ' 发动【连击】，追加出牌！');
+    }
+    if (wild9) {
+      g.color = color;
+      p.skill.uses--;
+      glog(g, p.name + ' 发动【变色九】，' + E.cardLabel(c) + ' 指定为 ' + E.COLOR_NAME[color]);
+    } else {
+      var extra = c.c === 'w' ? '，指定 ' + E.COLOR_NAME[color] : '';
+      glog(g, p.name + ' 打出 ' + E.cardLabel(c) + extra);
+    }
 
     if (!p.hand.length) {
       g.over = true;
       g.winner = p.id;
+      g.peek = null;
       glog(g, p.name + ' 出完了所有手牌，获胜！');
       return { ok: true };
     }
@@ -154,6 +228,25 @@
       g.unoPending = p.id;
       g.unoDeadline = Date.now() + 4000;
       glog(g, p.name + ' 只剩 1 张牌！');
+    }
+
+    /* 连击触发检查：还有同色/同数字/万能牌可出 */
+    var comboHold = false;
+    if (g.skillMode && p.skill && p.skill.id === 'combo' && p.skill.uses > 0 && g.comboSeat == null) {
+      var canFollow = p.hand.some(function (x) {
+        return x.c === 'w' || x.c === g.color || x.k === g.top.k;
+      });
+      if (canFollow) comboHold = true;
+    }
+
+    if (comboHold) {
+      /* 不轮转：罚牌照常结算给下家，然后回合回到自己手上 */
+      if (c.k === 'd2') { step(g, 1); applyDrawPenalty(g, 2, p.id); step(g, -1); }
+      else if (c.k === 'w4') { step(g, 1); applyDrawPenalty(g, 4, p.id); step(g, -1); }
+      else if (c.k === 'rev') { g.dir *= -1; glog(g, '方向反转'); }
+      g.comboSeat = p.id;
+      glog(g, p.name + ' 触发【连击】，可追加一张');
+      return { ok: true, combo: true };
     }
 
     var N = g.players.length;
@@ -169,10 +262,10 @@
         else { step(g, 1); glog(g, '方向反转，轮到 ' + g.players[g.turn].name); }
         break;
       case 'd2':
-        step(g, 1); applyDrawPenalty(g, 2); step(g, 1);
+        step(g, 1); applyDrawPenalty(g, 2, p.id); step(g, 1);
         break;
       case 'w4':
-        step(g, 1); applyDrawPenalty(g, 4); step(g, 1);
+        step(g, 1); applyDrawPenalty(g, 4, p.id); step(g, 1);
         break;
       default:
         step(g, 1);
@@ -180,11 +273,31 @@
     return { ok: true };
   };
 
-  /* 摸一张：能出则等待玩家决定，不能出自动过 */
-  E.drawCard = function (g) {
+  /* 摸一张：能出则等待玩家决定，不能出自动过。
+     useWindfall：顺风手——摸 2 张选 1 张保留。 */
+  E.drawCard = function (g, useWindfall) {
     if (g.over) return { ok: false, err: '对局已结束' };
     var p = g.players[g.turn];
     if (g.awaiting) return { ok: false, err: '请先处理摸到的牌' };
+    var sk = g.skillMode && p.skill;
+    var wf = !!(useWindfall && sk && sk.id === 'windfall' && sk.uses > 0 &&
+      g.deck.length + Math.max(0, g.discard.length - 1) >= 2);
+    if (wf) {
+      sk.uses--;
+      var uids = [];
+      for (var i = 0; i < 2; i++) {
+        if (drawOne(g, p)) uids.push(p.hand[p.hand.length - 1].uid);
+      }
+      glog(g, p.name + ' 发动【顺风手】，摸 2 张选 1 张');
+      if (uids.length === 2) {
+        g.awaiting = { type: 'windfall' };
+        g.windfallUids = uids;
+        return { ok: true, windfall: true, uids: uids };
+      }
+      /* 牌堆不够 2 张：退回普通摸牌流程 */
+      sk.uses++;
+      glog(g, '牌堆不足，【顺风手】未消耗次数');
+    }
     var c = drawOne(g, p);
     if (!c) {
       glog(g, p.name + ' 无牌可摸，跳过回合');
@@ -200,6 +313,98 @@
     }
     step(g, 1);
     return { ok: true, playable: false };
+  };
+
+  /* 顺风手：从摸到的 2 张里保留 1 张，另 1 张塞回牌堆底 */
+  E.windfallKeep = function (g, seat, keepUid) {
+    if (g.over) return { ok: false, err: '对局已结束' };
+    if (!g.awaiting || g.awaiting.type !== 'windfall') return { ok: false, err: '没有待选的牌' };
+    if (g.turn !== seat) return { ok: false, err: '还没轮到你' };
+    var uids = g.windfallUids || [];
+    if (uids.indexOf(keepUid) < 0) return { ok: false, err: '请选择刚摸到的牌' };
+    var p = g.players[seat];
+    var other = uids.filter(function (u) { return u !== keepUid; })[0];
+    for (var i = 0; i < p.hand.length; i++) {
+      if (p.hand[i].uid === other) { g.deck.unshift(p.hand.splice(i, 1)[0]); break; }
+    }
+    glog(g, p.name + ' 保留了 1 张，另 1 张塞回牌堆底');
+    g.awaiting = null;
+    g.windfallUids = null;
+    var kept = null;
+    p.hand.forEach(function (c) { if (c.uid === keepUid) kept = c; });
+    if (kept && E.playable(g, kept)) {
+      g.awaiting = { type: 'drawn' };
+      g.drawnUid = keepUid;
+      return { ok: true, playable: true, uid: keepUid };
+    }
+    step(g, 1);
+    return { ok: true };
+  };
+
+  /* 偷天换日：送出 1 张手牌，与目标随机盲换（不消耗回合） */
+  E.useSwap = function (g, seat, uid, target) {
+    if (g.over) return { ok: false, err: '对局已结束' };
+    if (g.turn !== seat) return { ok: false, err: '只能在自己回合使用' };
+    if (g.awaiting) return { ok: false, err: '请先处理摸到的牌' };
+    var p = g.players[seat];
+    var sk = g.skillMode && p.skill;
+    if (!sk || sk.id !== 'swap' || sk.uses <= 0) return { ok: false, err: '技能不可用' };
+    if (target == null || target === seat || !g.players[target]) return { ok: false, err: '请选择交换对手' };
+    var t = g.players[target];
+    if (!t.hand.length) return { ok: false, err: '对方没有手牌' };
+    var idx = -1;
+    p.hand.forEach(function (c, i) { if (c.uid === uid) idx = i; });
+    if (idx < 0) return { ok: false, err: '这张牌不在你手里' };
+    var mine = p.hand.splice(idx, 1)[0];
+    var theirs = t.hand.splice(Math.floor(Math.random() * t.hand.length), 1)[0];
+    p.hand.push(theirs);
+    t.hand.push(mine);
+    sk.uses--;
+    glog(g, p.name + ' 对 ' + t.name + ' 使用【偷天换日】，盲换了一张手牌');
+    return { ok: true };
+  };
+
+  /* 天眼：偷看目标手牌直到回合结束 */
+  E.useEye = function (g, seat, target) {
+    if (g.over) return { ok: false, err: '对局已结束' };
+    if (g.turn !== seat) return { ok: false, err: '只能在自己回合使用' };
+    var p = g.players[seat];
+    var sk = g.skillMode && p.skill;
+    if (!sk || sk.id !== 'eye' || sk.uses <= 0) return { ok: false, err: '技能不可用' };
+    if (target == null || target === seat || !g.players[target]) return { ok: false, err: '请选择查看对象' };
+    sk.uses--;
+    g.peek = { by: seat, target: target };
+    glog(g, p.name + ' 使用【天眼】，偷看了 ' + g.players[target].name + ' 的手牌');
+    return { ok: true };
+  };
+
+  /* 连击：放弃追加，正常轮转 */
+  E.passCombo = function (g) {
+    if (g.comboSeat == null) return { ok: false, err: '没有连击机会' };
+    var p = g.players[g.turn];
+    g.comboSeat = null;
+    glog(g, p.name + ' 放弃了连击');
+    step(g, 1);
+    return { ok: true };
+  };
+
+  /* 选技能（开局 3 选 1） */
+  E.assignSkill = function (g, seat, id) {
+    if (!g.skillMode) return { ok: false, err: '不是技能模式' };
+    var p = g.players[seat];
+    if (!p || p.skill) return { ok: false, err: '已经选过技能了' };
+    var ch = g.skillChoices && g.skillChoices[seat] || [];
+    if (ch.indexOf(id) < 0) return { ok: false, err: '不是候选技能' };
+    p.skill = { id: id, uses: E.SKILLS[id].uses };
+    glog(g, p.name + ' 选择技能：' + E.SKILLS[id].icon + E.SKILLS[id].name);
+    return { ok: true };
+  };
+
+  /* 变色九可用判定（供 UI 高亮） */
+  E.wild9Ready = function (g, seat) {
+    if (!g.skillMode) return false;
+    var p = g.players[seat];
+    return !!(p && p.skill && p.skill.id === 'wild9' && p.skill.uses > 0);
   };
 
   /* 摸到能出的牌但选择保留 */

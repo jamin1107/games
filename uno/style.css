@@ -693,6 +693,87 @@ button { font-family: inherit; }
 .net-error { margin: 6px 0; font-size: 10px; color: #f0a79f; }
 .net-actions { margin-top: 10px; }
 
+/* ---------- 技能模式 ---------- */
+.skill-btn {
+  margin-left: 8px;
+  flex: 0 0 auto;
+  padding: 4px 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(186, 104, 242, .55);
+  background: rgba(186, 104, 242, .16);
+  color: #d9b8ff;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.skill-btn:active { transform: scale(.95); }
+.skill-btn.empty { opacity: .45; }
+.opp-skill {
+  font-size: 9px;
+  color: #d9b8ff;
+  border: 1px solid rgba(186, 104, 242, .45);
+  border-radius: 99px;
+  padding: 0 5px;
+  line-height: 14px;
+  white-space: nowrap;
+}
+.hand .ucard.skill9 {
+  box-shadow: 0 0 0 2px rgba(186, 104, 242, .95), 0 6px 16px rgba(0, 0, 0, .4);
+}
+
+/* 技能选择卡 */
+.skill-grid { display: flex; flex-direction: column; gap: 8px; padding: 4px 0 6px; overflow-y: auto; }
+.skill-card {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 10px;
+  align-items: center;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+  padding: 10px 12px;
+  color: var(--text);
+  cursor: pointer;
+}
+.skill-card:active { transform: scale(.98); border-color: rgba(186, 104, 242, .7); }
+.sc-icon { grid-row: 1 / 3; font-size: 24px; text-align: center; }
+.sc-name { font-size: 14px; font-weight: 800; }
+.sc-desc { font-size: 11px; color: var(--muted); line-height: 1.5; }
+.sc-uses { grid-column: 2; font-size: 9px; letter-spacing: .12em; color: var(--gold); margin-top: 2px; }
+
+/* 目标选择 */
+.tgt-list { display: flex; flex-direction: column; gap: 8px; padding: 4px 0 6px; }
+.tgt-btn {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  padding: 12px 14px;
+  color: var(--text);
+  font-size: 14px;
+  cursor: pointer;
+}
+.tgt-btn span { font-size: 11px; color: var(--muted); }
+.tgt-btn:active { transform: scale(.98); border-color: rgba(186, 104, 242, .7); }
+
+/* 天眼手牌展示 */
+.eye-hand {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  overflow-y: auto;
+  max-height: 42dvh;
+  padding: 4px 0 6px;
+}
+.eye-hand .ucard { width: 58px; height: 87px; }
+.eye-hand .ucard .uc-val { font-size: 20px; }
+.eye-hand .uc-corner { font-size: 12px; }
+
 /* ---------- 手机矮屏紧凑 ---------- */
 @media (max-height: 640px) {
   .hand .ucard { width: 64px; height: 96px; }
