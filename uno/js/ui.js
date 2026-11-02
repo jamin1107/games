@@ -18,6 +18,10 @@
   var skillPickOpen = false;  // 技能选择弹层状态
   var swapPick = -1;          // 偷天换日：等待点选要送出的手牌
   var eyeShownFor = -1;       // 天眼弹层当前展示的目标
+  var twinArm = false;        // 双子星：等待点选主数字牌
+  var refreshPick = false;    // 淘旧换新：等待点选要弃掉的牌
+  var pendingHexTarget = -1;  // 蛊惑：等待押颜色的目标
+  var oracleShown = false;    // 占卜师弹层已展示
   var AVATAR_COLORS = ['#e0533f', '#3f7fe0', '#43a86b', '#b07d14'];
   var AVATAR_IMGS = ['assets/avatar-r.jpg', 'assets/avatar-b.jpg', 'assets/avatar-g.jpg', 'assets/avatar-y.jpg'];
 
@@ -104,6 +108,10 @@
       var skChip = (g.skillMode && p.skill)
         ? '<span class="opp-skill">' + E.SKILLS[p.skill.id].icon + (p.skill.uses > 0 ? '×' + p.skill.uses : '') + '</span>'
         : '';
+      var marks = '';
+      if (g.hex && g.hex.target === p.id) marks += '<span class="opp-skill">🎯</span>';
+      if (g.delayed && g.delayed.length && g.delayed.indexOf(p.id) >= 0) marks += '<span class="opp-skill">⏳</span>';
+      if (g.portalTarget && g.portalTarget.target === p.id) marks += '<span class="opp-skill">🌀</span>';
       var backs = '';
       var shown = Math.min(p.hand.length, 6);
       for (var i = 0; i < shown; i++) backs += '<i class="mini-back" style="transform:rotate(' + ((i - shown / 2) * 4) + 'deg)"></i>';
@@ -114,7 +122,7 @@
             '<span class="opp-avatar" style="border-color:' + AVATAR_COLORS[p.id % AVATAR_COLORS.length] + '"><img src="' + AVATAR_IMGS[p.id % AVATAR_IMGS.length] + '" alt=""></span>' +
             uno +
           '</div>' +
-          '<div class="opp-id"><div class="opp-name">' + esc(p.name) + skChip + think + '</div>' +
+          '<div class="opp-id"><div class="opp-name">' + esc(p.name) + skChip + marks + think + '</div>' +
           '<div class="opp-count">' + p.hand.length + ' 张</div></div>' +
         '</div>' +
         '<div class="opp-cards">' + backs + '</div>' +
@@ -150,14 +158,15 @@
       return order[a.c] - order[b.c] || (kindOrder(a.k) < kindOrder(b.k) ? -1 : 1);
     });
     var canPlay = isMyTurn && !g.awaiting;
-    var wf9 = canPlay && E.wild9Ready(g, me);
+    var wf9 = canPlay && E.luckyReady(g, me);
+    var luckyNum = g.luckyNum != null ? String(g.luckyNum) : null;
     var wfUids = (g.awaiting && g.awaiting.type === 'windfall' && g.windfallUids) || [];
     var h = '';
     hand.forEach(function (c) {
       var natural = E.playable(g, c);
       var playable = canPlay && natural;
       var skill9 = false;
-      if (!playable && wf9 && c.k === '9') { playable = true; skill9 = true; }
+      if (!playable && wf9 && luckyNum && c.k === luckyNum) { playable = true; skill9 = true; }
       var isWf = wfUids.indexOf(c.uid) >= 0;
       var isDrawn = c.uid === g.drawnUid;
       var cls = '';
@@ -170,7 +179,9 @@
     handEl.classList.toggle('tight', my.hand.length > 8);
     handEl.innerHTML = h;
     $('hand-meta').textContent = my.hand.length + ' 张手牌' +
-      (swapPick >= 0 ? ' · 🔄 点一张要送出的牌' : '');
+      (swapPick >= 0 ? ' · 🔄 点一张要送出的牌' : '') +
+      (twinArm ? ' · 👯 点一张能出的数字牌' : '') +
+      (refreshPick ? ' · ♻️ 点一张要弃掉的牌' : '');
 
     /* UNO 喊话按钮 */
     var ub = $('uno-btn');
@@ -221,6 +232,9 @@
       ab += '<button class="btn" data-act="combopass">跳过连击</button>';
     } else if (isMyTurn) {
       hint = '轮到你了：点一张能跟上的牌，或摸一张';
+      if (g.portalTarget && g.portalTarget.by === me) {
+        hint = '🌀 传送门已锁定：出牌后由 ' + g.players[g.portalTarget.target].name + ' 接替 · ' + hint;
+      }
       ab += '<button class="btn primary" data-act="draw">摸一张牌</button>';
     } else {
       var cur = g.players[g.turn];
@@ -235,6 +249,13 @@
       openEyeSheet(g.peek.target);
     }
     if ((!g.peek || g.peek.by !== me) && eyeShownFor >= 0) eyeShownFor = -1;
+
+    /* 占卜师：看牌弹层 */
+    if (g.oracleShow && g.oracleShow.by === me && !g.over && !oracleShown) {
+      oracleShown = true;
+      openOracleSheet();
+    }
+    if ((!g.oracleShow || g.oracleShow.by !== me) && oracleShown) oracleShown = false;
 
     /* 开局选技能弹层（每人一次） */
     if (g.skillMode && !g.over && my.skill == null && g.skillChoices && g.skillChoices[me] && !skillPickOpen) {
@@ -273,9 +294,11 @@
         AI.maybeUtility(g, cur2);
         var pick = AI.pick(g, cur2);
         if (pick) {
-          E.playCard(g, pick.uid, pick.color);
+          E.playCard(g, pick.uid, pick.color, pick.twinUid);
         } else if (g.turn === cur2.id && !g.awaiting) {
-          var r = E.drawCard(g, AI.wantWindfall(g, cur2));
+          var rfUid = AI.wantRefresh ? AI.wantRefresh(g, cur2) : null;
+          var r = rfUid != null ? E.useRefresh(g, cur2.id, rfUid)
+                                : E.drawCard(g, AI.wantWindfall(g, cur2));
           if (r && r.windfall) {
             AI.windfallKeep(g, cur2);
             if (g.awaiting && g.awaiting.type === 'drawn') {
@@ -307,12 +330,12 @@
     return mode === 'net' && UI.net && UI.net.role === 'guest';
   }
 
-  function doPlay(uid, color) {
+  function doPlay(uid, color, twinUid) {
     if (isGuest()) {
-      Net.sendAction({ a: 'play', uid: uid, color: color });
+      Net.sendAction({ a: 'play', uid: uid, color: color, twinUid: twinUid });
       return;
     }
-    var r = E.playCard(g, uid, color);
+    var r = E.playCard(g, uid, color, twinUid);
     if (!r.ok) { UI.toastMsg(r.err || '不能出这张牌'); UI.render(); return; }
     commit();
   }
@@ -371,6 +394,78 @@
     });
   }
 
+  function doReversal() {
+    doSkill({ a: 'skill', s: 'reversal' }, function () {
+      return E.useReversal(g, me);
+    });
+  }
+
+  function doPortal(target) {
+    doSkill({ a: 'skill', s: 'portal', target: target }, function () {
+      return E.armPortal(g, me, target);
+    });
+  }
+
+  function doRefresh(uid) {
+    doSkill({ a: 'skill', s: 'refresh', uid: uid }, function () {
+      return E.useRefresh(g, me, uid);
+    });
+  }
+
+  function doDraw2() {
+    doSkill({ a: 'skill', s: 'draw2' }, function () {
+      return E.useDraw2(g, me);
+    });
+  }
+
+  function doMSwap(target) {
+    doSkill({ a: 'skill', s: 'mswap', target: target }, function () {
+      return E.useMSwap(g, me, target);
+    });
+  }
+
+  function doSteal(target) {
+    doSkill({ a: 'skill', s: 'steal', target: target }, function () {
+      return E.useSteal(g, me, target);
+    });
+  }
+
+  function doWreck(target) {
+    doSkill({ a: 'skill', s: 'wreck', target: target }, function () {
+      return E.useWreck(g, me, target);
+    });
+  }
+
+  function doDelay(target) {
+    doSkill({ a: 'skill', s: 'delay', target: target }, function () {
+      return E.useDelay(g, me, target);
+    });
+  }
+
+  function doHex(target, color) {
+    doSkill({ a: 'skill', s: 'hex', target: target, color: color }, function () {
+      return E.useHex(g, me, target, color);
+    });
+  }
+
+  function doOracle() {
+    doSkill({ a: 'skill', s: 'oracle' }, function () {
+      return E.useOracle(g, me);
+    });
+  }
+
+  function doOracleMove(uid) {
+    doSkill({ a: 'skill', s: 'oracleMove', uid: uid }, function () {
+      return E.oracleMove(g, me, uid);
+    });
+  }
+
+  function doOracleSkip() {
+    doSkill({ a: 'skill', s: 'oracleSkip' }, function () {
+      return E.oracleSkip(g, me);
+    });
+  }
+
   /* 喊 UNO */
   function doShout() {
     if (!g || g.over || g.unoPending !== me) return;
@@ -405,21 +500,78 @@
 
   /* ---------------- 弹层 ---------------- */
 
-  function openColorSheet(uid, isSkill9) {
+  /* 颜色选择弹层：mode = 'wild' 万能牌 | 'lucky' 幸运数字 | 'hex' 蛊惑押色 */
+  function openColorSheet(uid, mode) {
     pendingWild = uid;
-    var head = isSkill9
-      ? '<div class="sheet-head"><h2>🌈 变色九</h2><p>这张 9 跟不上牌面，消耗 1 次技能，指定任意颜色打出。</p></div>'
-      : '<div class="sheet-head"><h2>选一个颜色</h2><p>这张是万能牌，出完后由你指定后续颜色。</p></div>';
+    var head;
+    if (mode === 'lucky') {
+      head = '<div class="sheet-head"><h2>🎲 幸运数字</h2><p>这张 ' + esc(String(g.luckyNum)) +
+        ' 跟不上牌面，消耗 1 次技能，指定任意颜色打出。</p></div>';
+    } else if (mode === 'hex') {
+      head = '<div class="sheet-head"><h2>🎭 蛊惑 · 押颜色</h2><p>押中目标下次打出的颜色：他摸 2 张；押不中你摸 1 张。</p></div>';
+    } else {
+      head = '<div class="sheet-head"><h2>选一个颜色</h2><p>这张是万能牌，出完后由你指定后续颜色。</p></div>';
+    }
     var btns = E.COLORS.map(function (c) {
       return '<button class="color-btn dot-' + c + '" data-color="' + c + '">' + E.COLOR_NAME[c] + '</button>';
     }).join('');
     openSheet(head + '<div class="color-grid">' + btns + '</div>');
     Array.prototype.forEach.call(document.querySelectorAll('.color-btn'), function (b) {
       b.addEventListener('click', function () {
+        var color = b.getAttribute('data-color');
+        if (mode === 'hex') {
+          var t = pendingHexTarget;
+          pendingHexTarget = -1;
+          closeSheet();
+          doHex(t, color);
+          return;
+        }
         var uid2 = pendingWild;
         pendingWild = -1;
         closeSheet();
-        doPlay(uid2, b.getAttribute('data-color'));
+        doPlay(uid2, color);
+      });
+    });
+  }
+
+  /* 双子星：选要附带打出的同数字手牌 */
+  function openTwinSheet(main, cands) {
+    var items = cands.map(function (c) {
+      return '<div class="twin-cand" data-uid="' + c.uid + '">' + cardHTML(c) + '</div>';
+    }).join('');
+    openSheet(
+      '<div class="sheet-head"><h2>👯 双子星</h2><p>主牌 ' + esc(E.cardLabel(main)) +
+      '，再选一张同数字的一并打出（颜色不限）。</p></div>' +
+      '<div class="eye-hand">' + items + '</div>'
+    );
+    Array.prototype.forEach.call(document.querySelectorAll('.twin-cand'), function (el) {
+      el.addEventListener('click', function () {
+        var tu = Number(el.getAttribute('data-uid'));
+        twinArm = false;
+        closeSheet();
+        doPlay(main.uid, null, tu);
+      });
+    });
+  }
+
+  /* 占卜师：看牌堆顶 3 张，可压 1 张到堆底 */
+  function openOracleSheet() {
+    var cards = (g.oracleShow && g.oracleShow.cards) || [];
+    var items = cards.map(function (c) { return '<div class="oracle-cand">' + cardHTML(c) + '</div>'; }).join('');
+    openSheet(
+      '<div class="sheet-head"><h2>🔮 占卜师</h2><p>牌堆顶的牌。点一张压到牌堆底，或保持原样。</p></div>' +
+      '<div class="eye-hand">' + (items || '<p class="net-tip">牌堆没有牌。</p>') + '</div>' +
+      '<div class="sheet-foot"><button class="btn" id="oracle-skip">保持原样</button></div>'
+    );
+    $('oracle-skip').addEventListener('click', function () {
+      closeSheet();
+      doOracleSkip();
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('.oracle-cand'), function (el) {
+      el.addEventListener('click', function () {
+        var u = Number(el.querySelector('.ucard').getAttribute('data-uid'));
+        closeSheet();
+        doOracleMove(u);
       });
     });
   }
@@ -493,42 +645,81 @@
     });
   }
 
-  /* 技能按钮点击 */
+  /* 技能按钮点击：打开技能详情弹层 */
   function onSkillBtn() {
     if (!g || g.over || !g.skillMode || !g.players[me].skill) return;
-    /* 偷天换日选牌中：再点一次取消 */
+    /* 选牌模式中：再点一次取消 */
     if (swapPick >= 0) { swapPick = -1; UI.render(); return; }
+    if (twinArm) { twinArm = false; UI.render(); return; }
+    if (refreshPick) { refreshPick = false; UI.render(); return; }
     var sk = g.players[me].skill;
     var info = E.SKILLS[sk.id];
     if (sk.uses <= 0) { UI.toastMsg(info.name + ' 的次数已用完'); return; }
     var myTurn = g.turn === me && !g.over;
-    if (sk.id === 'wild9') { UI.toastMsg('🌈 出数字 9 时点那张 9，即可声明任意颜色'); return; }
-    if (sk.id === 'shield') { UI.toastMsg('🛡️ 被动技能：被 +2 / +4 罚牌时自动反弹'); return; }
-    if (!myTurn) { UI.toastMsg('只能在自己回合使用'); return; }
-    if (g.awaiting) { UI.toastMsg('请先处理刚摸的牌'); return; }
-    if (g.comboSeat === me) { UI.toastMsg('连击期间不能使用技能'); return; }
-    if (sk.id === 'windfall') {
-      openSheet(
-        '<div class="sheet-head"><h2>🍀 顺风手</h2><p>放弃普通摸牌，改为摸 2 张并选 1 张保留，另 1 张塞回牌堆底。剩余 ' + sk.uses + ' 次。</p></div>' +
-        '<div class="sheet-foot"><button class="btn primary" id="wf-go">发动</button>' +
-        '<button class="btn" id="wf-cancel">取消</button></div>'
-      );
-      $('wf-go').addEventListener('click', function () { closeSheet(); doDraw(true); });
-      $('wf-cancel').addEventListener('click', closeSheet);
+    var active = ['windfall', 'swap', 'eye', 'reversal', 'portal', 'refresh',
+      'draw3', 'mswap', 'steal', 'wreck', 'delay', 'hex', 'oracle', 'twin']
+      .indexOf(sk.id) >= 0;
+    var body = '<div class="sheet-head"><h2>' + info.icon + ' ' + info.name + '</h2><p>' + esc(info.desc) + '</p>' +
+      '<p class="net-tip">剩余 ' + sk.uses + ' 次。</p></div>';
+    if (!active) {
+      openSheet(body + '<div class="sheet-foot"><button class="btn primary" id="sk-ok">知道了</button></div>');
+      $('sk-ok').addEventListener('click', closeSheet);
       return;
     }
-    if (sk.id === 'swap') {
-      openTargetSheet('🔄 偷天换日', '选一位对手盲换：你送出 1 张手牌，随机抽他 1 张。剩余 ' + sk.uses + ' 次。', function (seat) {
+    openSheet(body + '<div class="sheet-foot"><button class="btn primary" id="sk-go">发动</button>' +
+      '<button class="btn" id="sk-cancel">取消</button></div>');
+    $('sk-cancel').addEventListener('click', closeSheet);
+    $('sk-go').addEventListener('click', function () {
+      if (!myTurn) { UI.toastMsg('只能在自己回合使用'); return; }
+      if (g.awaiting) { UI.toastMsg('请先处理刚摸的牌'); return; }
+      if (g.comboSeat === me) { UI.toastMsg('连击期间不能使用技能'); return; }
+      closeSheet();
+      activateSkill(sk.id, sk.uses);
+    });
+  }
+
+  /* 按技能 id 分流发动流程 */
+  function activateSkill(id, uses) {
+    var sub = '剩余 ' + uses + ' 次。';
+    if (id === 'windfall') { doDraw(true); return; }
+    if (id === 'reversal') { doReversal(); return; }
+    if (id === 'draw3') { doDraw2(); return; }
+    if (id === 'oracle') { doOracle(); return; }
+    if (id === 'twin') {
+      twinArm = true;
+      UI.toastMsg('👯 点一张能打出的数字牌，将同时带出另一张同数字的牌');
+      UI.render();
+      return;
+    }
+    if (id === 'refresh') {
+      refreshPick = true;
+      UI.toastMsg('♻️ 点一张要弃掉的手牌，弃掉后重新摸 1 张');
+      UI.render();
+      return;
+    }
+    if (id === 'swap') {
+      openTargetSheet('🔄 偷天换日', '选一位对手盲换：你送出 1 张手牌，随机抽他 1 张。' + sub, function (seat) {
         swapPick = seat;
         UI.toastMsg('点一张要送出的手牌（再点技能按钮取消）');
         UI.render();
       });
-      return;
-    }
-    if (sk.id === 'eye') {
-      openTargetSheet('👁️ 天眼', '选一位对手偷看全部手牌，直到你的回合结束。剩余 ' + sk.uses + ' 次。', function (seat) {
-        doEye(seat);
+    } else if (id === 'eye') {
+      openTargetSheet('👁️ 天眼', '选一位对手偷看全部手牌，直到你的回合结束。' + sub, function (seat) { doEye(seat); });
+    } else if (id === 'mswap') {
+      openTargetSheet('🔃 乾坤挪移', '与一位手牌数差不超过 2 的对手整手互换。' + sub, function (seat) { doMSwap(seat); });
+    } else if (id === 'steal') {
+      openTargetSheet('🐑 顺手牵羊', '随机抽一位对手的 1 张手牌加入你的手牌。' + sub, function (seat) { doSteal(seat); });
+    } else if (id === 'wreck') {
+      openTargetSheet('🔨 过河拆桥', '随机弃掉一位对手的 1 张手牌进弃牌堆。' + sub, function (seat) { doWreck(seat); });
+    } else if (id === 'delay') {
+      openTargetSheet('⏳ 拖延', '其下回合开始前先罚摸 1 张。' + sub, function (seat) { doDelay(seat); });
+    } else if (id === 'hex') {
+      openTargetSheet('🎭 蛊惑', '选一位对手，然后押一个颜色。' + sub, function (seat) {
+        pendingHexTarget = seat;
+        openColorSheet(-1, 'hex');
       });
+    } else if (id === 'portal') {
+      openTargetSheet('🌀 传送门', '出牌后由他接替出牌，无视顺序。' + sub, function (seat) { doPortal(seat); });
     }
   }
 
@@ -553,8 +744,11 @@
       '<p><b>万能牌</b>：★ 换色自由出；+4 出完后由你指定颜色，下家摸 4 张。</p>' +
       '<p><b>摸牌</b>：无牌可出就摸一张；摸到的牌如果能出，可以立刻打出或保留。</p>' +
       '<p><b>喊 UNO</b>：打到只剩 1 张时，4 秒内点手牌旁的 UNO！按钮；忘记喊被抓到要罚摸 1 张。AI 也会喊。</p>' +
-      '<p><b>技能模式</b>：开局每人从 3 个候选技能中选 1 个，每局限定使用次数——' +
-      '🌈变色九（9 当万能出）、🛡️护身符（反弹 +2/+4）、🍀顺风手（摸2选1）、🔄偷天换日（盲换手牌）、⚡连击（追加出一张）、👁️天眼（看对手手牌）。</p>' +
+      '<p><b>技能模式</b>：开局每人从 3 个候选技能中选 1 个（共 20 种技能池），每局限定次数——</p>' +
+      '<p>🎲幸运数字（幸运数字当万能出）· ⚡连击（追加出牌）· 👯双子星（带出同数字）· 🔀迷魂阵（强转方向）· 🌀传送门（指定接替出牌者）</p>' +
+      '<p>🍀顺风手（摸2选1）· ♻️淘旧换新（弃1摸1）· 🎁无中生有（白摸2张）· 🔄偷天换日（盲换1张）· 🔃乾坤挪移（整手互换，差值≤2）</p>' +
+      '<p>🐑顺手牵羊（抽1张）· 🔨过河拆桥（弃1张）· 🚨急刹车（UNO拦截）· ⏳拖延（下回合罚摸）· 🌵荆棘（+2/+4反弹一半）</p>' +
+      '<p>🛡️护身符（反弹+2/+4）· 👁️天眼（看手牌）· 🎭蛊惑（押颜色）· 🔮占卜师（看牌堆顶3张）· 🫥隐形斗篷（免喊UNO）</p>' +
       '</div>' +
       '<div class="sheet-foot"><button class="btn primary" id="sheet-ok">明白了</button></div>'
     );
@@ -595,6 +789,17 @@
     $('res-home').addEventListener('click', function () { location.reload(); });
   };
 
+  function resetRoundState() {
+    resultsShown = false;
+    skillPickOpen = false;
+    swapPick = -1;
+    eyeShownFor = -1;
+    twinArm = false;
+    refreshPick = false;
+    pendingHexTarget = -1;
+    oracleShown = false;
+  }
+
   function restartGame() {
     if (mode === 'net' && UI.net && UI.net.role === 'host') {
       var humanIds = g.players.filter(function (p) { return p.isHuman; }).map(function (p) { return p.id; });
@@ -602,10 +807,7 @@
       g = E.createGame({ playerCount: g.players.length, humanIds: humanIds, names: names, skillMode: UI.skillMode });
       UI.g = g;
       me = 0;
-      resultsShown = false;
-      skillPickOpen = false;
-      swapPick = -1;
-      eyeShownFor = -1;
+      resetRoundState();
       UI.render();
       Net.broadcast();
       UI.pump();
@@ -630,10 +832,7 @@
     UI.g = g;
     UI.me = 0;
     UI.net = null;
-    resultsShown = false;
-    skillPickOpen = false;
-    swapPick = -1;
-    eyeShownFor = -1;
+    resetRoundState();
     var s = $('start'); if (s) s.classList.add('hidden');
     UI.render();
     UI.pump();
@@ -690,7 +889,7 @@
         b.classList.add('on');
         startCfg.play = b.getAttribute('data-play');
         $('skill-note').textContent = startCfg.play === 'skill'
-          ? '开局 3 选 1 技能，每局限定次数。'
+          ? '开局 3 选 1 技能（20 种技能池），每局限定次数。'
           : '经典规则，原汁原味。';
       });
     });
@@ -731,16 +930,28 @@
       }
       /* 偷天换日：选要送出的手牌 */
       if (swapPick >= 0) { doSwap(uid, swapPick); return; }
+      /* 淘旧换新：选要弃掉的手牌 */
+      if (refreshPick) { refreshPick = false; doRefresh(uid); return; }
+      /* 双子星：选主数字牌，再选附带牌 */
+      if (twinArm) {
+        if (!/^[0-9]$/.test(card.k)) { UI.toastMsg('双子星要点一张数字牌'); return; }
+        if (!E.playable(g, card)) { UI.toastMsg('先选一张能正常打出的数字牌'); return; }
+        var cands = my.hand.filter(function (x) { return x.uid !== uid && x.k === card.k; });
+        if (!cands.length) { UI.toastMsg('手里没有另一张 ' + card.k); return; }
+        openTwinSheet(card, cands);
+        return;
+      }
       if (g.turn !== me) { UI.toastMsg('还没轮到你'); return; }
       if (g.awaiting) { UI.toastMsg('请先处理刚摸的牌'); return; }
       if (E.playable(g, card)) {
-        if (card.c === 'w') { openColorSheet(uid, false); return; }
+        if (card.c === 'w') { openColorSheet(uid, 'wild'); return; }
         doPlay(uid, null);
         return;
       }
-      /* 变色九：跟不上的 9 可以声明颜色 */
-      if (card.k === '9' && g.skillMode && my.skill && my.skill.id === 'wild9' && my.skill.uses > 0) {
-        openColorSheet(uid, true);
+      /* 幸运数字：跟不上的公示数字可以声明颜色 */
+      if (g.skillMode && my.skill && my.skill.id === 'lucky' && my.skill.uses > 0 &&
+          g.luckyNum != null && card.k === String(g.luckyNum)) {
+        openColorSheet(uid, 'lucky');
         return;
       }
       UI.toastMsg('这张牌跟不上（需颜色或数字/功能相同）');
@@ -766,7 +977,7 @@
       else if (act === 'play-drawn') {
         var card = g.players[me].hand.filter(function (c) { return c.uid === g.drawnUid; })[0];
         if (!card) return;
-        if (card.c === 'w') openColorSheet(card.uid, false);
+        if (card.c === 'w') openColorSheet(card.uid, 'wild');
         else doPlay(card.uid, null);
       }
     });

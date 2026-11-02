@@ -774,6 +774,10 @@ button { font-family: inherit; }
 .eye-hand .ucard .uc-val { font-size: 20px; }
 .eye-hand .uc-corner { font-size: 12px; }
 
+/* 双子星 / 占卜师：弹层内可点选的牌 */
+.twin-cand, .oracle-cand { cursor: pointer; }
+.twin-cand:active .ucard, .oracle-cand:active .ucard { transform: scale(.94); }
+
 /* ---------- 手机矮屏紧凑 ---------- */
 @media (max-height: 640px) {
   .hand .ucard { width: 64px; height: 96px; }
@@ -783,3 +787,53 @@ button { font-family: inherit; }
   .uno-logo b { font-size: 54px; }
   .opp { min-width: 86px; padding: 6px 8px; }
 }
+
+/* ---------- 页面内扫码浮层 ---------- */
+#qr-scan {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(6, 8, 12, .92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.scan-card { width: 100%; max-width: 400px; }
+.scan-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  color: var(--text);
+  font-size: 14px;
+  letter-spacing: .06em;
+}
+.scan-view {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  min-height: 200px;
+  background: #000;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+.scan-view video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.scan-frame {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 64%; height: 64%;
+  transform: translate(-50%, -50%);
+  border: 2px solid rgba(242, 181, 58, .9);
+  border-radius: 12px;
+  box-shadow: 0 0 0 2000px rgba(6, 8, 12, .38);
+  pointer-events: none;
+}
+.scan-card .net-tip { color: rgba(190, 200, 216, .78); }
+.scan-card .btn { width: 100%; margin-top: 8px; min-height: 42px; }
