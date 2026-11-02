@@ -341,6 +341,21 @@
   }
 
   function doPlay(uid, color, twinUid) {
+    /* 客户端兜底：联机视图可能滞后于房主，发送前按当前视图再拦一道，
+       避免「看着灰、其实已能出」的滞后窗口里把牌意外打出 */
+    if (!twinUid && g && g.players[me]) {
+      var card0 = g.players[me].hand.filter(function (c) { return c.uid === uid; })[0];
+      if (card0 && !E.playable(g, card0)) {
+        var luckyOk = g.skillMode && g.players[me].skill &&
+          g.players[me].skill.id === 'lucky' && g.players[me].skill.uses > 0 &&
+          g.luckyNum != null && card0.k === String(g.luckyNum) && color;
+        if (!luckyOk) {
+          UI.toastMsg('这张牌跟不上（需颜色或数字/功能相同）');
+          UI.render();
+          return;
+        }
+      }
+    }
     if (isGuest()) {
       Net.sendAction({ a: 'play', uid: uid, color: color, twinUid: twinUid });
       return;

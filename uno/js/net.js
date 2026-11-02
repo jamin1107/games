@@ -553,6 +553,8 @@
         U.UI.netWelcome(msg.seat);
       } else if (msg.t === 'state') {
         U.UI.netState(msg.view);
+      } else if (msg.t === 'err') {
+        U.UI.toastMsg(msg.m || '操作无效');
       }
     };
     dc.onclose = function () {
@@ -659,9 +661,11 @@
     if (g.turn !== seat && msg.a !== 'uno' && msg.a !== 'skill') return;
     E.unoExpired(g);
     var ok = false;
+    var err = '';
     if (msg.a === 'play') {
       var r = E.playCard(g, msg.uid, msg.color, msg.twinUid);
       ok = !!(r && r.ok);
+      err = (r && !r.ok && r.err) || '';
       if (ok && g.over) UI.showResults();
     } else if (msg.a === 'draw') {
       ok = E.drawCard(g, msg.wf).ok;
@@ -700,6 +704,10 @@
     UI.render();
     broadcast();
     if (ok) UI.pump();
+    else if (sm.role === 'host' && sm.peers[seat] && sm.peers[seat].connected) {
+      /* 拒绝时给客人明确反馈，而不是静默丢弃 */
+      try { sm.peers[seat].dc.send(JSON.stringify({ t: 'err', m: err || '无效操作，请以最新牌面为准' })); } catch (e) {}
+    }
   };
 
   Net.sendAction = function (msg) {
