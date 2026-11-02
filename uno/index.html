@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#131722">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>UNO · 桌游集合</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%23131722'/%3E%3Cellipse%20cx='16'%20cy='16'%20rx='10'%20ry='7'%20fill='%23e0533f'/%3E%3Ctext%20x='16'%20y='20'%20font-size='10'%20font-weight='bold'%20text-anchor='middle'%20fill='%23fff'%20font-family='Arial'%3EU%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css?v=1">
+</head>
+<body>
+<div id="app">
+  <header class="hud">
+    <div class="hud-l">
+      <button class="icon-btn" id="btn-home" aria-label="回到首页">⌂</button>
+      <span id="hud-room" class="room-chip"></span>
+    </div>
+    <div class="hud-r">
+      <button class="icon-btn" id="btn-log" aria-label="出牌记录">记</button>
+      <button class="icon-btn" id="btn-help" aria-label="规则">?</button>
+    </div>
+  </header>
+
+  <section class="opponents" id="opponents"></section>
+  <section class="ticker" id="ticker"><span class="tk-tag">动态</span><span class="tk-text" id="ticker-text"></span></section>
+
+  <section class="table">
+    <div class="pile-zone">
+      <div class="draw-pile" id="draw-pile" title="点击摸牌">
+        <div class="dp-stack"><i></i><i></i><i></i></div>
+        <span class="dp-count" id="draw-count">0</span>
+        <span class="dp-label">牌堆</span>
+      </div>
+      <div class="mid-info">
+        <span class="dir-arrow" id="dir-arrow">⟳</span>
+        <div class="active-color dot-b" id="active-color"></div>
+      </div>
+      <div class="discard" id="discard"></div>
+    </div>
+    <div class="hint-line" id="hint-line"></div>
+  </section>
+
+  <section class="dock">
+    <div class="hand-head">
+      <span class="hand-title">手牌</span>
+      <span class="hand-meta" id="hand-meta"></span>
+    </div>
+    <div class="hand" id="hand"></div>
+  </section>
+
+  <footer class="actionbar" id="actionbar"></footer>
+  <div class="toast" id="toast"></div>
+</div>
+
+<div id="sheet" class="sheet-wrap hidden"></div>
+<div id="netroom" class="netroom hidden"></div>
+
+<div id="start" class="start">
+  <div class="start-inner">
+    <div class="uno-logo"><b>UNO</b></div>
+    <p class="start-tagline">一张一张跟上去，<br>最先清空手牌的人赢。</p>
+
+    <div class="seg mode-seg" id="mode-seg">
+      <button data-mode="solo" class="on">单人挑战</button>
+      <button data-mode="net">局域网联机</button>
+    </div>
+
+    <div class="seg" id="count-seg">
+      <button data-count="2">2 人桌</button>
+      <button data-count="3">3 人桌</button>
+      <button data-count="4" class="on">4 人桌</button>
+    </div>
+    <p class="mode-note" id="mode-note">你 + 3 位 AI 对手。</p>
+
+    <button class="btn primary big" id="btn-start">开始游戏</button>
+    <button class="btn ghost" id="btn-rules">规则速览</button>
+    <p class="start-foot">纯本地单机 · 无需联网 · 竖屏适配</p>
+  </div>
+</div>
+
+<script src="js/engine.js?v=2"></script>
+<script src="js/ai.js?v=2"></script>
+<script src="js/qrcode.js?v=2"></script>
+<script src="js/net.js?v=2"></script>
+<script src="js/ui.js?v=2"></script>
+</body>
+</html>
