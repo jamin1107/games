@@ -837,3 +837,17 @@ button { font-family: inherit; }
 }
 .scan-card .net-tip { color: rgba(190, 200, 216, .78); }
 .scan-card .btn { width: 100%; margin-top: 8px; min-height: 42px; }
+
+/* 手牌多选弹层（换换果子 / 零食分享） */
+.pick-cand {
+  display: inline-block;
+  cursor: pointer;
+  border-radius: 10px;
+  transition: transform .12s ease;
+}
+.pick-cand:active { transform: scale(.94); }
+.pick-cand.sel .ucard {
+  outline: 3px solid #ffb057;
+  outline-offset: 2px;
+  border-radius: 10px;
+}

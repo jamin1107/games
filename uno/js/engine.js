@@ -7,12 +7,14 @@
   E.COLOR_NAME = { r: '红色', y: '黄色', g: '绿色', b: '蓝色' };
   E.KIND_NAME = { skip: '跳过', rev: '反转', d2: '+2', wild: '换色', w4: '+4' };
 
-  /* ---------------- 技能模式（20 种技能池） ---------------- */
+  /* ---------------- 技能模式（30 种技能池） ---------------- */
   var SKILL_IDS = [
     'lucky', 'combo', 'twin', 'reversal', 'portal',
     'windfall', 'refresh', 'draw3', 'swap', 'mswap',
     'steal', 'wreck', 'brake', 'delay', 'thorn',
-    'shield', 'eye', 'hex', 'oracle', 'cloak'
+    'shield', 'eye', 'hex', 'oracle', 'cloak',
+    'jh', 'wq', 'sh', 'ks', 'cp',
+    'yz', 'wd', 'bz', 'xj', 'ls'
   ];
   E.SKILL_IDS = SKILL_IDS;
   E.SKILLS = {
@@ -23,23 +25,33 @@
     portal:   { icon: '🌀', name: '传送门',   uses: 1, desc: '先指定一位玩家，你出完牌后由他接替出牌，无视顺序' },
     windfall: { icon: '🍀', name: '顺风手',   uses: 2, desc: '摸牌时改为摸 2 张，选 1 张保留，另 1 张塞回牌堆底' },
     refresh:  { icon: '♻️', name: '淘旧换新', uses: 3, desc: '弃掉 1 张手牌并重新摸 1 张，摸到能出的可立刻打出或保留' },
-    draw3:    { icon: '🎁', name: '无中生有', uses: 1, desc: '不消耗回合，直接摸 2 张牌' },
+    draw3:    { icon: '🎣', name: '摸鱼',     uses: 1, desc: '不消耗回合，直接摸 2 张牌' },
     swap:     { icon: '🔄', name: '偷天换日', uses: 1, desc: '送出 1 张手牌，与任一对手随机盲换' },
     mswap:    { icon: '🔃', name: '乾坤挪移', uses: 1, desc: '与一位手牌数差不超过 2 的对手整手互换' },
-    steal:    { icon: '🐑', name: '顺手牵羊', uses: 1, desc: '随机抽一位对手的 1 张手牌加入你的手牌' },
-    wreck:    { icon: '🔨', name: '过河拆桥', uses: 1, desc: '随机弃掉一位对手的 1 张手牌进弃牌堆' },
+    steal:    { icon: '🐟', name: '叼走小鱼', uses: 1, desc: '随机抽一位对手的 1 张手牌加入你的手牌' },
+    wreck:    { icon: '🦫', name: '拆水坝',   uses: 1, desc: '随机弃掉一位对手的 1 张手牌进弃牌堆' },
     brake:    { icon: '🚨', name: '急刹车',   uses: 1, desc: '先手动待命：任一对手打到剩 1 张时，塞给他 1 张并取消其 UNO（待命一次生效一次）' },
     delay:    { icon: '⏳', name: '拖延',     uses: 1, desc: '指定一位对手，其下回合开始前先罚摸 1 张' },
     thorn:    { icon: '🌵', name: '荆棘',     uses: 2, desc: '先手动待命：被 +2 / +4 罚牌时，攻击者也罚摸一半数量（向上取整）' },
     shield:   { icon: '🛡️', name: '护身符',   uses: 1, desc: '先手动待命：被 +2 / +4 罚牌时全部反弹给出牌者，自己不摸' },
     eye:      { icon: '👁️', name: '天眼',     uses: 2, desc: '偷看任一对手的全部手牌，直到你的回合结束' },
-    hex:      { icon: '🎭', name: '蛊惑',     uses: 1, desc: '指定一位对手并押一个颜色：他下次打出的颜色与押注一致则摸 2 张，否则你摸 1 张' },
+    hex:      { icon: '🍉', name: '赌西瓜',   uses: 1, desc: '指定一位对手并押一个颜色：他下次打出的颜色与押注一致则摸 2 张，否则你摸 1 张' },
     oracle:   { icon: '🔮', name: '占卜师',   uses: 2, desc: '查看牌堆顶 3 张，可将其中 1 张压到牌堆底' },
-    cloak:    { icon: '🫥', name: '隐形斗篷', uses: 1, desc: '先手动待命：下一次打到只剩 1 张时无需喊 UNO，不会被罚' }
+    cloak:    { icon: '🫥', name: '隐形斗篷', uses: 1, desc: '先手动待命：下一次打到只剩 1 张时无需喊 UNO，不会被罚' },
+    jh:       { icon: '⚖️', name: '换换果子', uses: 1, desc: '弃掉任意张手牌，再摸等量的牌（不消耗回合）' },
+    wq:       { icon: '♨️', name: '温泉派对', uses: 1, desc: '所有玩家各摸 1 张，然后你继续出牌（不消耗回合）' },
+    sh:       { icon: '💦', name: '水花四溅', uses: 1, desc: '除你外所有玩家各罚摸 1 张（不消耗回合）' },
+    ks:       { icon: '😴', name: '瞌睡虫',   uses: 1, desc: '指定一位对手，跳过他的下个回合' },
+    cp:       { icon: '💨', name: '臭屁炸弹', uses: 1, desc: '指定一位对手，其下下个回合开始时罚摸 3 张' },
+    yz:       { icon: '🍃', name: '叶子快递', uses: 1, desc: '从一位对手手里随机抽 1 张牌，塞给另一位对手' },
+    wd:       { icon: '🧘', name: '稳如水豚', uses: 1, desc: '先手动待命：下一次针对你的技能（叼走小鱼/拆水坝/天眼/偷天换日/乾坤挪移/赌西瓜）无效' },
+    bz:       { icon: '🍊', name: '暴走柚子', uses: 1, desc: '本回合你打出的下一张 +2，罚牌翻倍成 +4' },
+    xj:       { icon: '🌿', name: '细嚼慢咽', uses: 1, desc: '被动：被 +2 / +4 罚牌时，只摸一半数量（向上取整）' },
+    ls:       { icon: '🍪', name: '零食分享', uses: 1, desc: '把 2 张手牌交给一位对手，然后自己摸 1 张' }
   };
 
   /* 待命型技能：需在自己回合先手动发动，条件达成时自动生效一次 */
-  var ARM_SKILLS = ['shield', 'thorn', 'brake', 'cloak'];
+  var ARM_SKILLS = ['shield', 'thorn', 'brake', 'cloak', 'wd'];
 
   E.cardLabel = function (c) {
     if (c.c === 'w') return E.KIND_NAME[c.k];
@@ -145,6 +157,9 @@
       peek: null,         // 天眼 { by, target }
       hex: null,          // 蛊惑 { by, target, color }
       delayed: [],        // 被拖延的座位列表
+      sleepy: [],         // 被瞌睡虫催眠的座位（跳过下个回合）
+      bomb: null,         // 臭屁炸弹 { seat, count }（count 剩余回合数）
+      grapeSeat: null,    // 暴走柚子生效中的座位（本回合 +2 翻倍）
       portalTarget: null, // 传送门 { by, target }
       oracleShow: null,   // 占卜师 { by, cards }
       log: []
@@ -183,15 +198,43 @@
     return true;
   }
 
-  /* 回合开始结算：拖延罚牌（按座位幂等） */
-  function settleDelay(g) {
-    if (!g.delayed || !g.delayed.length) return;
-    var i = g.delayed.indexOf(g.turn);
-    if (i < 0) return;
-    g.delayed.splice(i, 1);
-    var p = g.players[g.turn];
-    var got = drawOne(g, p) ? 1 : 0;
-    glog(g, p.name + ' 被【拖延】缠住，先罚摸 ' + got + ' 张');
+  /* 回合开始结算：拖延罚牌 + 臭屁炸弹引信（按座位幂等） */
+  function settleTurnStart(g) {
+    var i = (g.delayed || []).indexOf(g.turn);
+    if (i >= 0) {
+      g.delayed.splice(i, 1);
+      var pd = g.players[g.turn];
+      var gotD = drawOne(g, pd) ? 1 : 0;
+      glog(g, pd.name + ' 被【拖延】缠住，先罚摸 ' + gotD + ' 张');
+    }
+    var b = g.bomb;
+    if (b && b.seat === g.turn && !g.over) {
+      b.count--;
+      var bp = g.players[b.seat];
+      if (b.count <= 0) {
+        var gotB = 0;
+        for (var bi = 0; bi < 3; bi++) { if (drawOne(g, bp)) gotB++; }
+        glog(g, '💨【臭屁炸弹】在 ' + bp.name + ' 头上炸开，罚摸 ' + gotB + ' 张！');
+        g.bomb = null;
+      } else {
+        glog(g, '💨【臭屁炸弹】的引信在 ' + bp.name + ' 那边又烧掉一截…');
+      }
+    }
+  }
+
+  /* 回合结束收尾：瞌睡虫跳过、暴走柚子过期、视野/连击清理 */
+  function endTurn(g) {
+    var guard = 0;
+    while (!g.over && g.sleepy && g.sleepy.length && g.sleepy.indexOf(g.turn) >= 0 && guard++ < 8) {
+      var sp = g.players[g.turn];
+      g.sleepy.splice(g.sleepy.indexOf(g.turn), 1);
+      var N = g.players.length;
+      g.turn = ((g.turn + g.dir) % N + N) % N;
+      glog(g, sp.name + ' 被【瞌睡虫】催眠，跳过了回合');
+    }
+    if (g.grapeSeat != null && g.grapeSeat !== g.turn) g.grapeSeat = null;
+    if (g.peek && g.peek.by !== g.turn) g.peek = null;
+    if (g.comboSeat != null && g.turn !== g.comboSeat) g.comboSeat = null;
   }
 
   /* 回合以摸/过结束：传送门作废 */
@@ -215,8 +258,12 @@
       return;
     }
     var got = 0;
-    for (var i = 0; i < n; i++) { if (drawOne(g, victim)) got++; }
-    if (got) glog(g, victim.name + ' 被 ' + E.KIND_NAME[n === 2 ? 'd2' : 'w4'] + ' 罚摸 ' + got + ' 张并被跳过');
+    var xj = g.skillMode && victim.skill && victim.skill.id === 'xj' && victim.skill.uses > 0;
+    var cnt = xj ? Math.ceil(n / 2) : n;
+    if (xj) victim.skill.uses--;
+    for (var i = 0; i < cnt; i++) { if (drawOne(g, victim)) got++; }
+    if (xj) glog(g, victim.name + ' 发动【细嚼慢咽】，罚 ' + n + ' 张只摸了 ' + got + ' 张并被跳过');
+    else if (got) glog(g, victim.name + ' 被 ' + E.KIND_NAME[n === 2 ? 'd2' : 'w4'] + ' 罚摸 ' + got + ' 张并被跳过');
     else glog(g, victim.name + ' 无牌可摸，被跳过');
     /* 荆棘：待命中则攻击者也罚摸一半 */
     var th = g.skillMode && victim.skill;
@@ -242,7 +289,7 @@
   E.playCard = function (g, uid, color, twinUid) {
     if (g.over) return { ok: false, err: '对局已结束' };
     var p = g.players[g.turn];
-    settleDelay(g);
+    settleTurnStart(g);
     var idx = -1;
     p.hand.forEach(function (c, i) { if (c.uid === uid) idx = i; });
     if (idx < 0) return { ok: false, err: '这张牌不在你手里' };
@@ -325,7 +372,7 @@
       }
     }
 
-    /* 蛊惑结算：目标出牌后按最终颜色判定 */
+    /* 赌西瓜结算：目标出牌后按最终颜色判定 */
     if (g.hex && g.hex.target === p.id && !g.over) {
       var hx = g.hex;
       g.hex = null;
@@ -333,10 +380,10 @@
       if (g.color === hx.color) {
         var gotH = 0;
         for (var hi = 0; hi < 2; hi++) { if (drawOne(g, tgP)) gotH++; }
-        glog(g, '【蛊惑】命中！' + tgP.name + ' 押中颜色，罚摸 ' + gotH + ' 张');
+        glog(g, '【赌西瓜】命中！' + tgP.name + ' 押中颜色，罚摸 ' + gotH + ' 张');
       } else {
         var gotH2 = drawOne(g, byP) ? 1 : 0;
-        glog(g, '【蛊惑】未中，' + byP.name + ' 摸 ' + gotH2 + ' 张');
+        glog(g, '【赌西瓜】未中，' + byP.name + ' 摸 ' + gotH2 + ' 张');
       }
     }
 
@@ -351,7 +398,12 @@
 
     if (comboHold) {
       /* 不轮转：罚牌照常结算给下家，然后回合回到自己手上 */
-      if (c.k === 'd2') { step(g, 1); applyDrawPenalty(g, 2, p.id); step(g, -1); }
+      if (c.k === 'd2') {
+        step(g, 1);
+        if (g.grapeSeat === p.id) { g.grapeSeat = null; glog(g, p.name + ' 的【暴走柚子】发力，+2 翻倍成 +4！'); applyDrawPenalty(g, 4, p.id); }
+        else applyDrawPenalty(g, 2, p.id);
+        step(g, -1);
+      }
       else if (c.k === 'w4') { step(g, 1); applyDrawPenalty(g, 4, p.id); step(g, -1); }
       else if (c.k === 'rev') { g.dir *= -1; glog(g, '方向反转'); }
       g.comboSeat = p.id;
@@ -372,7 +424,13 @@
         else { step(g, 1); glog(g, '方向反转，轮到 ' + g.players[g.turn].name); }
         break;
       case 'd2':
-        step(g, 1); applyDrawPenalty(g, 2, p.id); step(g, 1);
+        step(g, 1);
+        if (g.grapeSeat === p.id) {
+          g.grapeSeat = null;
+          glog(g, p.name + ' 的【暴走柚子】发力，+2 翻倍成 +4！');
+          applyDrawPenalty(g, 4, p.id);
+        } else applyDrawPenalty(g, 2, p.id);
+        step(g, 1);
         break;
       case 'w4':
         step(g, 1); applyDrawPenalty(g, 4, p.id); step(g, 1);
@@ -390,6 +448,7 @@
         glog(g, '【传送门】生效，轮到 ' + g.players[pt.target].name + ' 出牌');
       }
     }
+    endTurn(g);
     return { ok: true };
   };
 
@@ -399,7 +458,7 @@
     if (g.over) return { ok: false, err: '对局已结束' };
     var p = g.players[g.turn];
     if (g.awaiting) return { ok: false, err: '请先处理摸到的牌' };
-    settleDelay(g);
+    settleTurnStart(g);
     var sk = g.skillMode && p.skill;
     var wf = !!(useWindfall && sk && sk.id === 'windfall' && sk.uses > 0 &&
       g.deck.length + Math.max(0, g.discard.length - 1) >= 2);
@@ -424,6 +483,7 @@
       glog(g, p.name + ' 无牌可摸，跳过回合');
       clearPortalWaste(g);
       step(g, 1);
+      endTurn(g);
       return { ok: true, passed: true };
     }
     var card = p.hand[p.hand.length - 1];
@@ -435,6 +495,7 @@
     }
     clearPortalWaste(g);
     step(g, 1);
+    endTurn(g);
     return { ok: true, playable: false };
   };
 
@@ -462,6 +523,7 @@
     }
     clearPortalWaste(g);
     step(g, 1);
+    endTurn(g);
     return { ok: true };
   };
 
@@ -475,6 +537,7 @@
     if (!sk || sk.id !== 'swap' || sk.uses <= 0) return { ok: false, err: '技能不可用' };
     if (target == null || target === seat || !g.players[target]) return { ok: false, err: '请选择交换对手' };
     var t = g.players[target];
+    if (guardBlock(g, target, '偷天换日')) { sk.uses--; return { ok: true, blocked: true }; }
     if (!t.hand.length) return { ok: false, err: '对方没有手牌' };
     var idx = -1;
     p.hand.forEach(function (c, i) { if (c.uid === uid) idx = i; });
@@ -496,6 +559,7 @@
     var sk = g.skillMode && p.skill;
     if (!sk || sk.id !== 'eye' || sk.uses <= 0) return { ok: false, err: '技能不可用' };
     if (target == null || target === seat || !g.players[target]) return { ok: false, err: '请选择查看对象' };
+    if (guardBlock(g, target, '天眼')) { sk.uses--; return { ok: true, blocked: true }; }
     sk.uses--;
     g.peek = { by: seat, target: target };
     glog(g, p.name + ' 使用【天眼】，偷看了 ' + g.players[target].name + ' 的手牌');
@@ -516,6 +580,18 @@
     if (target == null || target === seat || !g.players[target]) return { err: '请选择目标对手' };
     if (needCards && !g.players[target].hand.length) return { err: '对方没有手牌' };
     return { t: g.players[target] };
+  }
+
+  /* 稳如水豚：目标待命中则挡下这次技能（攻击者的次数照样消耗） */
+  function guardBlock(g, targetSeat, byName) {
+    var t = g.players[targetSeat];
+    var s = g.skillMode && t.skill;
+    if (s && s.id === 'wd' && s.armed) {
+      s.armed = false;
+      glog(g, t.name + ' 发动【稳如水豚】，稳稳挡住了 ' + byName + ' 的技能！');
+      return true;
+    }
+    return false;
   }
 
   /* 待命：护身符/荆棘/急刹车/隐形斗篷需在自己回合先手动发动，触发时生效一次 */
@@ -565,7 +641,7 @@
     ck.sk.uses--;
     glog(g, p.name + ' 发动【淘旧换新】，弃掉 ' + E.cardLabel(old));
     var c = drawOne(g, p);
-    if (!c) { glog(g, p.name + ' 无牌可摸，跳过回合'); clearPortalWaste(g); step(g, 1); return { ok: true }; }
+    if (!c) { glog(g, p.name + ' 无牌可摸，跳过回合'); clearPortalWaste(g); step(g, 1); endTurn(g); return { ok: true }; }
     var card = p.hand[p.hand.length - 1];
     glog(g, p.name + ' 重新摸了 1 张');
     if (E.playable(g, card)) {
@@ -575,6 +651,7 @@
     }
     clearPortalWaste(g);
     step(g, 1);
+    endTurn(g);
     return { ok: true };
   };
 
@@ -585,7 +662,7 @@
     var got = 0;
     for (var i = 0; i < 2; i++) { if (drawOne(g, ck.p)) got++; }
     ck.sk.uses--;
-    glog(g, ck.p.name + ' 发动【无中生有】，不耗回合摸了 ' + got + ' 张');
+    glog(g, ck.p.name + ' 发动【摸鱼】，不耗回合摸了 ' + got + ' 张');
     return { ok: true };
   };
 
@@ -596,6 +673,7 @@
     var tc = targetCheck(g, seat, target, true);
     if (tc.err) return { ok: false, err: tc.err };
     if (Math.abs(ck.p.hand.length - tc.t.hand.length) > 2) return { ok: false, err: '双方手牌数差不能超过 2' };
+    if (guardBlock(g, target, '乾坤挪移')) { ck.sk.uses--; return { ok: true, blocked: true }; }
     var tmp = ck.p.hand;
     ck.p.hand = tc.t.hand;
     tc.t.hand = tmp;
@@ -605,29 +683,31 @@
     return { ok: true };
   };
 
-  /* 顺手牵羊：随机抽对手 1 张入手 */
+  /* 叼走小鱼：随机抽对手 1 张入手 */
   E.useSteal = function (g, seat, target) {
     var ck = activeCheck(g, seat, 'steal');
     if (ck.err) return { ok: false, err: ck.err };
     var tc = targetCheck(g, seat, target, true);
     if (tc.err) return { ok: false, err: tc.err };
+    if (guardBlock(g, target, '叼走小鱼')) { ck.sk.uses--; return { ok: true, blocked: true }; }
     var card = tc.t.hand.splice(Math.floor(Math.random() * tc.t.hand.length), 1)[0];
     ck.p.hand.push(card);
     ck.sk.uses--;
-    glog(g, ck.p.name + ' 对 ' + tc.t.name + ' 使用【顺手牵羊】，抽走 1 张手牌');
+    glog(g, ck.p.name + ' 对 ' + tc.t.name + ' 使用【叼走小鱼】，抽走 1 张手牌');
     return { ok: true };
   };
 
-  /* 过河拆桥：随机弃对手 1 张进弃牌堆 */
+  /* 拆水坝：随机弃对手 1 张进弃牌堆 */
   E.useWreck = function (g, seat, target) {
     var ck = activeCheck(g, seat, 'wreck');
     if (ck.err) return { ok: false, err: ck.err };
     var tc = targetCheck(g, seat, target, true);
     if (tc.err) return { ok: false, err: tc.err };
+    if (guardBlock(g, target, '拆水坝')) { ck.sk.uses--; return { ok: true, blocked: true }; }
     var card = tc.t.hand.splice(Math.floor(Math.random() * tc.t.hand.length), 1)[0];
     g.discard.push(card);
     ck.sk.uses--;
-    glog(g, ck.p.name + ' 对 ' + tc.t.name + ' 使用【过河拆桥】，弃掉 1 张手牌');
+    glog(g, ck.p.name + ' 对 ' + tc.t.name + ' 使用【拆水坝】，弃掉 1 张手牌');
     return { ok: true };
   };
 
@@ -643,16 +723,17 @@
     return { ok: true };
   };
 
-  /* 蛊惑：押目标下次出牌的颜色 */
+  /* 赌西瓜：押目标下次出牌的颜色 */
   E.useHex = function (g, seat, target, color) {
     var ck = activeCheck(g, seat, 'hex');
     if (ck.err) return { ok: false, err: ck.err };
     var tc = targetCheck(g, seat, target, false);
     if (tc.err) return { ok: false, err: tc.err };
     if (E.COLORS.indexOf(color) < 0) return { ok: false, err: '请选择押注颜色' };
+    if (guardBlock(g, target, '赌西瓜')) { ck.sk.uses--; return { ok: true, blocked: true }; }
     ck.sk.uses--;
     g.hex = { by: seat, target: target, color: color };
-    glog(g, ck.p.name + ' 对 ' + tc.t.name + ' 使用【蛊惑】，押下了一个颜色');
+    glog(g, ck.p.name + ' 对 ' + tc.t.name + ' 使用【赌西瓜】，押下了一个颜色');
     return { ok: true };
   };
 
@@ -685,6 +766,131 @@
     return { ok: true };
   };
 
+  /* 换换果子：弃任意张手牌，摸等量（不消耗回合） */
+  E.useBalance = function (g, seat, uids) {
+    var ck = activeCheck(g, seat, 'jh');
+    if (ck.err) return { ok: false, err: ck.err };
+    if (!uids || !uids.length) return { ok: false, err: '至少选 1 张要弃的牌' };
+    var p = ck.p;
+    var cards = [];
+    for (var i = 0; i < uids.length; i++) {
+      var found = null;
+      p.hand.forEach(function (c) { if (c.uid === uids[i]) found = c; });
+      if (!found) return { ok: false, err: '有牌不在你手里' };
+      if (cards.indexOf(found) >= 0) return { ok: false, err: '不要重复选牌' };
+      cards.push(found);
+    }
+    cards.forEach(function (c) {
+      p.hand.splice(p.hand.indexOf(c), 1);
+      g.discard.push(c);
+    });
+    ck.sk.uses--;
+    var got = 0;
+    for (i = 0; i < cards.length; i++) { if (drawOne(g, p)) got++; }
+    glog(g, p.name + ' 发动【换换果子】，弃 ' + cards.length + ' 张换新 ' + got + ' 张');
+    return { ok: true };
+  };
+
+  /* 温泉派对：所有玩家各摸 1 张，自己继续出牌 */
+  E.useHotSpring = function (g, seat) {
+    var ck = activeCheck(g, seat, 'wq');
+    if (ck.err) return { ok: false, err: ck.err };
+    ck.sk.uses--;
+    var got = 0;
+    g.players.forEach(function (p) { if (drawOne(g, p)) got++; });
+    glog(g, ck.p.name + ' 发动【温泉派对】，大家泡着温泉各摸了 1 张（共 ' + got + ' 张）');
+    return { ok: true };
+  };
+
+  /* 水花四溅：除自己外所有玩家各罚摸 1 张 */
+  E.useSplash = function (g, seat) {
+    var ck = activeCheck(g, seat, 'sh');
+    if (ck.err) return { ok: false, err: ck.err };
+    ck.sk.uses--;
+    var got = 0;
+    g.players.forEach(function (p) {
+      if (p.id !== seat && drawOne(g, p)) got++;
+    });
+    glog(g, ck.p.name + ' 发动【水花四溅】，溅了大家一身，其他玩家共罚摸 ' + got + ' 张');
+    return { ok: true };
+  };
+
+  /* 瞌睡虫：目标跳过下个回合 */
+  E.useSleep = function (g, seat, target) {
+    var ck = activeCheck(g, seat, 'ks');
+    if (ck.err) return { ok: false, err: ck.err };
+    var tc = targetCheck(g, seat, target, false);
+    if (tc.err) return { ok: false, err: tc.err };
+    if ((g.sleepy || []).indexOf(target) >= 0) return { ok: false, err: '他已经在打瞌睡了' };
+    ck.sk.uses--;
+    g.sleepy.push(target);
+    glog(g, ck.p.name + ' 对 ' + tc.t.name + ' 使用【瞌睡虫】，其下个回合要睡过去了');
+    return { ok: true };
+  };
+
+  /* 臭屁炸弹：目标下下个回合开始时罚摸 3 张 */
+  E.useBomb = function (g, seat, target) {
+    var ck = activeCheck(g, seat, 'cp');
+    if (ck.err) return { ok: false, err: ck.err };
+    var tc = targetCheck(g, seat, target, false);
+    if (tc.err) return { ok: false, err: tc.err };
+    if (g.bomb) return { ok: false, err: '场上有炸弹还没炸' };
+    ck.sk.uses--;
+    g.bomb = { seat: target, count: 2 };
+    glog(g, ck.p.name + ' 悄悄在 ' + tc.t.name + ' 身边放了颗【臭屁炸弹】…');
+    return { ok: true };
+  };
+
+  /* 叶子快递：从对手 A 随机抽 1 张塞给对手 B */
+  E.useLeaf = function (g, seat, from, to) {
+    var ck = activeCheck(g, seat, 'yz');
+    if (ck.err) return { ok: false, err: ck.err };
+    var fc = targetCheck(g, seat, from, true);
+    if (fc.err) return { ok: false, err: '请选择被抽牌的对手' };
+    if (to == null || to === seat || to === from || !g.players[to]) return { ok: false, err: '请选择收件的对手' };
+    var card = fc.t.hand.splice(Math.floor(Math.random() * fc.t.hand.length), 1)[0];
+    g.players[to].hand.push(card);
+    ck.sk.uses--;
+    glog(g, ck.p.name + ' 使用【叶子快递】，从 ' + fc.t.name + ' 那里抽 1 张寄给了 ' + g.players[to].name);
+    return { ok: true };
+  };
+
+  /* 暴走柚子：本回合下一张 +2 翻倍成 +4 */
+  E.useGrape = function (g, seat) {
+    var ck = activeCheck(g, seat, 'bz');
+    if (ck.err) return { ok: false, err: ck.err };
+    ck.sk.uses--;
+    g.grapeSeat = seat;
+    glog(g, ck.p.name + ' 嗑了颗【暴走柚子】，本回合下一张 +2 翻倍！');
+    return { ok: true };
+  };
+
+  /* 零食分享：给一位对手 2 张手牌，自己摸 1 张 */
+  E.useSnack = function (g, seat, uids, target) {
+    var ck = activeCheck(g, seat, 'ls');
+    if (ck.err) return { ok: false, err: ck.err };
+    var tc = targetCheck(g, seat, target, false);
+    if (tc.err) return { ok: false, err: tc.err };
+    if (!uids || uids.length !== 2) return { ok: false, err: '请选 2 张手牌送出' };
+    var p = ck.p;
+    var cards = [];
+    for (var i = 0; i < uids.length; i++) {
+      var found = null;
+      p.hand.forEach(function (c) { if (c.uid === uids[i]) found = c; });
+      if (!found) return { ok: false, err: '有牌不在你手里' };
+      if (cards.indexOf(found) >= 0) return { ok: false, err: '不要重复选牌' };
+      cards.push(found);
+    }
+    cards.forEach(function (c) {
+      p.hand.splice(p.hand.indexOf(c), 1);
+      tc.t.hand.push(c);
+    });
+    ck.sk.uses--;
+    var got = drawOne(g, p) ? 1 : 0;
+    glog(g, ck.p.name + ' 把 2 张【零食分享】给了 ' + tc.t.name + '，自己摸了 ' + got + ' 张');
+    return { ok: true };
+  };
+
   /* 连击：放弃追加，正常轮转 */
   E.passCombo = function (g) {
     if (g.comboSeat == null) return { ok: false, err: '没有连击机会' };
@@ -693,6 +899,7 @@
     clearPortalWaste(g);
     glog(g, p.name + ' 放弃了连击');
     step(g, 1);
+    endTurn(g);
     return { ok: true };
   };
 
@@ -724,6 +931,7 @@
     g.drawnUid = -1;
     clearPortalWaste(g);
     step(g, 1);
+    endTurn(g);
     return { ok: true };
   };
 

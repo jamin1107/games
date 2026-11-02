@@ -111,6 +111,8 @@
       var marks = '';
       if (g.hex && g.hex.target === p.id) marks += '<span class="opp-skill">🎯</span>';
       if (g.delayed && g.delayed.length && g.delayed.indexOf(p.id) >= 0) marks += '<span class="opp-skill">⏳</span>';
+      if (g.sleepy && g.sleepy.length && g.sleepy.indexOf(p.id) >= 0) marks += '<span class="opp-skill">😴</span>';
+      if (g.bomb && g.bomb.seat === p.id) marks += '<span class="opp-skill">💨</span>';
       if (g.portalTarget && g.portalTarget.target === p.id) marks += '<span class="opp-skill">🌀</span>';
       if (p.skill && p.skill.armed) marks += '<span class="opp-skill">⚡</span>';
       var backs = '';
@@ -477,6 +479,90 @@
     });
   }
 
+  function doBalance(uids) {
+    doSkill({ a: 'skill', s: 'balance', uids: uids }, function () {
+      return E.useBalance(g, me, uids);
+    });
+  }
+
+  function doHotSpring() {
+    doSkill({ a: 'skill', s: 'hotspring' }, function () {
+      return E.useHotSpring(g, me);
+    });
+  }
+
+  function doSplash() {
+    doSkill({ a: 'skill', s: 'splash' }, function () {
+      return E.useSplash(g, me);
+    });
+  }
+
+  function doSleep(target) {
+    doSkill({ a: 'skill', s: 'sleep', target: target }, function () {
+      return E.useSleep(g, me, target);
+    });
+  }
+
+  function doBomb(target) {
+    doSkill({ a: 'skill', s: 'bomb', target: target }, function () {
+      return E.useBomb(g, me, target);
+    });
+  }
+
+  function doLeaf(from, to) {
+    doSkill({ a: 'skill', s: 'leaf', from: from, to: to }, function () {
+      return E.useLeaf(g, me, from, to);
+    });
+  }
+
+  function doGrape() {
+    doSkill({ a: 'skill', s: 'grape' }, function () {
+      return E.useGrape(g, me);
+    });
+  }
+
+  function doSnack(uids, target) {
+    doSkill({ a: 'skill', s: 'snack', uids: uids, target: target }, function () {
+      return E.useSnack(g, me, uids, target);
+    });
+  }
+
+  /* 手牌多选弹层：exact = 0 表示任意张（≥1），2 表示恰好 2 张 */
+  function openPickSheet(title, sub, exact, cb) {
+    var my = g.players[me];
+    var items = my.hand.map(function (c) {
+      return '<div class="pick-cand" data-uid="' + c.uid + '">' + cardHTML(c) + '</div>';
+    }).join('');
+    openSheet(
+      '<div class="sheet-head"><h2>' + title + '</h2><p>' + sub + '</p></div>' +
+      '<div class="eye-hand">' + (items || '<p class="net-tip">你没有手牌。</p>') + '</div>' +
+      '<div class="sheet-foot"><button class="btn primary" id="pick-ok" disabled>确认（0）</button>' +
+      '<button class="btn" id="pick-cancel">取消</button></div>'
+    );
+    var sel = [];
+    var ok = $('pick-ok');
+    function refresh() {
+      ok.textContent = '确认（' + sel.length + (exact ? '/' + exact : '') + '）';
+      ok.disabled = exact ? sel.length !== exact : sel.length < 1;
+    }
+    refresh();
+    Array.prototype.forEach.call(document.querySelectorAll('.pick-cand'), function (el) {
+      el.addEventListener('click', function () {
+        var u = Number(el.getAttribute('data-uid'));
+        var i = sel.indexOf(u);
+        if (i >= 0) { sel.splice(i, 1); el.classList.remove('sel'); }
+        else if (!exact || sel.length < exact) { sel.push(u); el.classList.add('sel'); }
+        else UI.toastMsg('最多选 ' + exact + ' 张');
+        refresh();
+      });
+    });
+    $('pick-cancel').addEventListener('click', closeSheet);
+    ok.addEventListener('click', function () {
+      closeSheet();
+      cb(sel.slice());
+    });
+  }
+
   /* 喊 UNO */
   function doShout() {
     if (!g || g.over || g.unoPending !== me) return;
@@ -519,7 +605,7 @@
       head = '<div class="sheet-head"><h2>🎲 幸运数字</h2><p>这张 ' + esc(String(g.luckyNum)) +
         ' 跟不上牌面，消耗 1 次技能，指定任意颜色打出。</p></div>';
     } else if (mode === 'hex') {
-      head = '<div class="sheet-head"><h2>🎭 蛊惑 · 押颜色</h2><p>押中目标下次打出的颜色：他摸 2 张；押不中你摸 1 张。</p></div>';
+      head = '<div class="sheet-head"><h2>' + E.SKILLS.hex.icon + ' ' + E.SKILLS.hex.name + ' · 押颜色</h2><p>押中目标下次打出的颜色：他摸 2 张；押不中你摸 1 张。</p></div>';
     } else {
       head = '<div class="sheet-head"><h2>选一个颜色</h2><p>这张是万能牌，出完后由你指定后续颜色。</p></div>';
     }
@@ -635,11 +721,12 @@
     if (ok) ok.addEventListener('click', closeSheet);
   }
 
-  /* 通用目标选择 */
-  function openTargetSheet(title, sub, cb) {
+  /* 通用目标选择（excludeSeat：额外排除的座位，如叶子快递的被抽方） */
+  function openTargetSheet(title, sub, cb, excludeSeat) {
     var items = '';
     g.players.forEach(function (p) {
       if (p.id === me) return;
+      if (excludeSeat != null && p.id === excludeSeat) return;
       items += '<button class="tgt-btn" data-seat="' + p.id + '">' +
         '<b>' + esc(p.name) + '</b><span>' + p.hand.length + ' 张手牌</span></button>';
     });
@@ -669,7 +756,8 @@
     var myTurn = g.turn === me && !g.over;
     var active = ['windfall', 'swap', 'eye', 'reversal', 'portal', 'refresh',
       'draw3', 'mswap', 'steal', 'wreck', 'delay', 'hex', 'oracle', 'twin',
-      'shield', 'thorn', 'brake', 'cloak']
+      'shield', 'thorn', 'brake', 'cloak',
+      'jh', 'wq', 'sh', 'ks', 'cp', 'yz', 'wd', 'bz', 'ls']
       .indexOf(sk.id) >= 0;
     var body = '<div class="sheet-head"><h2>' + info.icon + ' ' + info.name + '</h2><p>' + esc(info.desc) + '</p>' +
       (sk.armed
@@ -695,11 +783,24 @@
   /* 按技能 id 分流发动流程 */
   function activateSkill(id, uses) {
     var sub = '剩余 ' + uses + ' 次。';
-    if (id === 'shield' || id === 'thorn' || id === 'brake' || id === 'cloak') { doArm(id); return; }
+    if (id === 'shield' || id === 'thorn' || id === 'brake' || id === 'cloak' || id === 'wd') { doArm(id); return; }
     if (id === 'windfall') { doDraw(true); return; }
     if (id === 'reversal') { doReversal(); return; }
     if (id === 'draw3') { doDraw2(); return; }
     if (id === 'oracle') { doOracle(); return; }
+    if (id === 'wq') { doHotSpring(); return; }
+    if (id === 'sh') { doSplash(); return; }
+    if (id === 'bz') { doGrape(); return; }
+    if (id === 'jh') {
+      openPickSheet('⚖️ 换换果子', '点手牌选中要弃掉的（可多选），弃几张摸几张，不消耗回合。' + sub, 0, function (uids) { doBalance(uids); });
+      return;
+    }
+    if (id === 'ls') {
+      openPickSheet('🍪 零食分享', '选 2 张手牌送给一位对手，然后你摸 1 张。' + sub, 2, function (uids) {
+        openTargetSheet('🍪 送给谁？', '这两张零食将送给他。', function (seat) { doSnack(uids, seat); });
+      });
+      return;
+    }
     if (id === 'twin') {
       twinArm = true;
       UI.toastMsg('👯 点一张能打出的数字牌，将同时带出另一张同数字的牌');
@@ -723,18 +824,26 @@
     } else if (id === 'mswap') {
       openTargetSheet('🔃 乾坤挪移', '与一位手牌数差不超过 2 的对手整手互换。' + sub, function (seat) { doMSwap(seat); });
     } else if (id === 'steal') {
-      openTargetSheet('🐑 顺手牵羊', '随机抽一位对手的 1 张手牌加入你的手牌。' + sub, function (seat) { doSteal(seat); });
+      openTargetSheet('🐟 叼走小鱼', '随机抽一位对手的 1 张手牌加入你的手牌。' + sub, function (seat) { doSteal(seat); });
     } else if (id === 'wreck') {
-      openTargetSheet('🔨 过河拆桥', '随机弃掉一位对手的 1 张手牌进弃牌堆。' + sub, function (seat) { doWreck(seat); });
+      openTargetSheet('🦫 拆水坝', '随机弃掉一位对手的 1 张手牌进弃牌堆。' + sub, function (seat) { doWreck(seat); });
     } else if (id === 'delay') {
       openTargetSheet('⏳ 拖延', '其下回合开始前先罚摸 1 张。' + sub, function (seat) { doDelay(seat); });
+    } else if (id === 'ks') {
+      openTargetSheet('😴 瞌睡虫', '指定一位对手，跳过他的下个回合。' + sub, function (seat) { doSleep(seat); });
+    } else if (id === 'cp') {
+      openTargetSheet('💨 臭屁炸弹', '指定一位对手，其下下个回合开始时罚摸 3 张。' + sub, function (seat) { doBomb(seat); });
     } else if (id === 'hex') {
-      openTargetSheet('🎭 蛊惑', '选一位对手，然后押一个颜色。' + sub, function (seat) {
+      openTargetSheet(E.SKILLS.hex.icon + ' ' + E.SKILLS.hex.name, '选一位对手，然后押一个颜色。' + sub, function (seat) {
         pendingHexTarget = seat;
         openColorSheet(-1, 'hex');
       });
     } else if (id === 'portal') {
       openTargetSheet('🌀 传送门', '出牌后由他接替出牌，无视顺序。' + sub, function (seat) { doPortal(seat); });
+    } else if (id === 'yz') {
+      openTargetSheet('🍃 叶子快递 · 抽谁', '先选一位被抽牌的对手。' + sub, function (from) {
+        openTargetSheet('🍃 叶子快递 · 寄给谁', '抽到的牌将塞给这位对手（不含刚才那位）。', function (to) { doLeaf(from, to); }, from);
+      });
     }
   }
 
@@ -759,12 +868,15 @@
       '<p><b>万能牌</b>：★ 换色自由出；+4 出完后由你指定颜色，下家摸 4 张。</p>' +
       '<p><b>摸牌</b>：无牌可出就摸一张；摸到的牌如果能出，可以立刻打出或保留。</p>' +
       '<p><b>喊 UNO</b>：打到只剩 1 张时，4 秒内点手牌旁的 UNO！按钮；忘记喊被抓到要罚摸 1 张。AI 也会喊。</p>' +
-      '<p><b>技能模式</b>：开局每人从 3 个候选技能中选 1 个（共 20 种技能池），每局限定次数。' +
-      '🛡️护身符 / 🌵荆棘 / 🚨急刹车 / 🫥隐形斗篷为待命型：需在自己回合点技能按钮先发动，条件达成时自动生效一次——</p>' +
+      '<p><b>技能模式</b>：开局每人从 3 个候选技能中选 1 个（共 30 种技能池），每局限定次数。' +
+      '🛡️护身符 / 🌵荆棘 / 🚨急刹车 / 🫥隐形斗篷 / 🧘稳如水豚为待命型：需在自己回合点技能按钮先发动，条件达成时自动生效一次——</p>' +
       '<p>🎲幸运数字（幸运数字当万能出）· ⚡连击（追加出牌）· 👯双子星（带出同数字）· 🔀迷魂阵（强转方向）· 🌀传送门（指定接替出牌者）</p>' +
-      '<p>🍀顺风手（摸2选1）· ♻️淘旧换新（弃1摸1）· 🎁无中生有（白摸2张）· 🔄偷天换日（盲换1张）· 🔃乾坤挪移（整手互换，差值≤2）</p>' +
-      '<p>🐑顺手牵羊（抽1张）· 🔨过河拆桥（弃1张）· 🚨急刹车（UNO拦截）· ⏳拖延（下回合罚摸）· 🌵荆棘（+2/+4反弹一半）</p>' +
-      '<p>🛡️护身符（反弹+2/+4）· 👁️天眼（看手牌）· 🎭蛊惑（押颜色）· 🔮占卜师（看牌堆顶3张）· 🫥隐形斗篷（免喊UNO）</p>' +
+      '<p>🍀顺风手（摸2选1）· ♻️淘旧换新（弃1摸1）· 🎣摸鱼（白摸2张）· 🔄偷天换日（盲换1张）· 🔃乾坤挪移（整手互换，差值≤2）</p>' +
+      '<p>🐟叼走小鱼（抽1张）· 🦫拆水坝（弃1张）· 🚨急刹车（UNO拦截）· ⏳拖延（下回合罚摸）· 🌵荆棘（+2/+4反弹一半）</p>' +
+      '<p>🛡️护身符（反弹+2/+4）· 👁️天眼（看手牌）· 🍉赌西瓜（押颜色）· 🔮占卜师（看牌堆顶3张）· 🫥隐形斗篷（免喊UNO）</p>' +
+      '<p>⚖️换换果子（弃任意张摸等量）· ♨️温泉派对（全场各摸1张自己继续）· 💦水花四溅（其他人各罚摸1张）</p>' +
+      '<p>😴瞌睡虫（跳过目标下回合）· 💨臭屁炸弹（下下回合罚摸3张）· 🍃叶子快递（抽A的牌塞给B）</p>' +
+      '<p>🧘稳如水豚（挡下一次针对自己的技能）· 🍊暴走柚子（下一张+2翻倍）· 🌿细嚼慢咽（被罚只摸一半，被动）· 🍪零食分享（送2张给对手自己摸1张）</p>' +
       '</div>' +
       '<div class="sheet-foot"><button class="btn primary" id="sheet-ok">明白了</button></div>'
     );
@@ -922,7 +1034,7 @@
         b.classList.add('on');
         startCfg.play = b.getAttribute('data-play');
         $('skill-note').textContent = startCfg.play === 'skill'
-          ? '开局 3 选 1 技能（20 种技能池），每局限定次数。'
+          ? '开局 3 选 1 技能（30 种技能池），每局限定次数。'
           : '经典规则，原汁原味。';
       });
     });

@@ -201,5 +201,59 @@
         } else E.oracleSkip(g, p.id);
       }
     }
+    /* 换换果子：手牌多且有重牌时换掉最重的一张 */
+    if (skillOf(g, p, 'jh') && p.hand.length >= 6) {
+      var worstJ = null, wbj = 7;
+      p.hand.forEach(function (c) { var b = burden(c); if (b >= wbj) { wbj = b; worstJ = c; } });
+      if (worstJ) E.useBalance(g, p.id, [worstJ.uid]);
+    }
+    /* 温泉派对：手牌不少于 3 张时全场泡温泉，自己继续出 */
+    if (skillOf(g, p, 'wq') && p.hand.length >= 3 && Math.random() < 0.7) E.useHotSpring(g, p.id);
+    /* 水花四溅：有人快赢时泼一身水 */
+    if (skillOf(g, p, 'sh')) {
+      var damp = false;
+      g.players.forEach(function (o) { if (o.id !== p.id && o.hand.length <= 2) damp = true; });
+      if (damp) E.useSplash(g, p.id);
+    }
+    /* 瞌睡虫：催眠手牌最少的对手 */
+    if (skillOf(g, p, 'ks')) {
+      var t7 = minOpp();
+      if (t7 && t7.hand.length <= 2 && (g.sleepy || []).indexOf(t7.id) < 0) E.useSleep(g, p.id, t7.id);
+    }
+    /* 臭屁炸弹：塞给下家 */
+    if (skillOf(g, p, 'cp') && !g.bomb) {
+      var nx2 = nextOf();
+      if (nx2.hand.length <= 4) E.useBomb(g, p.id, nx2.id);
+    }
+    /* 叶子快递：从快赢的对手抽 1 张，寄给手牌最多的人 */
+    if (skillOf(g, p, 'yz')) {
+      var t8 = minOpp();
+      var mostY = null;
+      g.players.forEach(function (o) {
+        if (o.id !== p.id && (!mostY || o.hand.length > mostY.hand.length)) mostY = o;
+      });
+      if (t8 && mostY && t8.id !== mostY.id && t8.hand.length && t8.hand.length <= 2) {
+        E.useLeaf(g, p.id, t8.id, mostY.id);
+      }
+    }
+    /* 稳如水豚：有人快赢时挂上护体 */
+    if (canArm(g, p, 'wd')) {
+      var guard = false;
+      g.players.forEach(function (o) { if (o.id !== p.id && o.hand.length <= 2) guard = true; });
+      if (guard) E.armSkill(g, p.id, 'wd');
+    }
+    /* 暴走柚子：手里有 +2 且下家快赢时先嗑一颗 */
+    if (skillOf(g, p, 'bz') && g.grapeSeat !== p.id) {
+      var hasD2 = p.hand.some(function (c) { return c.k === 'd2'; });
+      if (hasD2 && nextOf().hand.length <= 3) E.useGrape(g, p.id);
+    }
+    /* 零食分享：把 2 张重牌塞给手牌最少的对手，自己摸 1 */
+    if (skillOf(g, p, 'ls') && p.hand.length >= 4) {
+      var t9 = minOpp();
+      if (t9) {
+        var heavy = p.hand.slice().sort(function (a, b) { return burden(b) - burden(a); }).slice(0, 2);
+        if (heavy.length === 2) E.useSnack(g, p.id, [heavy[0].uid, heavy[1].uid], t9.id);
+      }
+    }
   };
 })();

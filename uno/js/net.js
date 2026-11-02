@@ -673,6 +673,14 @@
       else if (msg.s === 'oracleMove') ok = E.oracleMove(g, seat, msg.uid).ok;
       else if (msg.s === 'oracleSkip') ok = E.oracleSkip(g, seat).ok;
       else if (msg.s === 'arm') ok = E.armSkill(g, seat, msg.id).ok;
+      else if (msg.s === 'balance') ok = E.useBalance(g, seat, msg.uids || []).ok;
+      else if (msg.s === 'hotspring') ok = E.useHotSpring(g, seat).ok;
+      else if (msg.s === 'splash') ok = E.useSplash(g, seat).ok;
+      else if (msg.s === 'sleep') ok = E.useSleep(g, seat, msg.target).ok;
+      else if (msg.s === 'bomb') ok = E.useBomb(g, seat, msg.target).ok;
+      else if (msg.s === 'leaf') ok = E.useLeaf(g, seat, msg.from, msg.to).ok;
+      else if (msg.s === 'grape') ok = E.useGrape(g, seat).ok;
+      else if (msg.s === 'snack') ok = E.useSnack(g, seat, msg.uids || [], msg.target).ok;
     }
     UI.render();
     broadcast();
@@ -708,6 +716,9 @@
       g.luckyNum || '',
       g.hex ? g.hex.by + '.' + g.hex.target + '.' + g.hex.color : '',
       (g.delayed || []).join('.'),
+      (g.sleepy || []).join('.'),
+      g.bomb ? g.bomb.seat + '.' + g.bomb.count : '',
+      g.grapeSeat == null ? '' : g.grapeSeat,
       g.portalTarget ? g.portalTarget.by + '.' + g.portalTarget.target : '',
       g.oracleShow ? 'o' : ''
     ].join('|');
